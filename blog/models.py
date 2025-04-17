@@ -10,7 +10,6 @@ class Blog(Base):
     title = Column(String)
     body = Column(String)
     user_id = Column(Integer, ForeignKey("users.id")) # made relations with blogs and user
-    #связываем между юзерами и блогом
     creator = relationship("User", back_populates="blogs")
 
 class User(Base):
@@ -21,3 +20,4 @@ class User(Base):
     password = Column(String)
 
     blogs = relationship("Blog", back_populates="creator")
+
