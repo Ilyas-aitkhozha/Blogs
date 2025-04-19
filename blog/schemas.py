@@ -1,13 +1,11 @@
 from pydantic import BaseModel
 from typing import List, Optional
-#in pydantic, we call it not model but schemas
 
-class BlogBase(BaseModel):
+class Blog(BaseModel):
     title: str
     body: str
-class Blog(BlogBase):
-    id: int
-    class Config():
+
+    class Config:
         from_attributes = True
 
 class User(BaseModel):
@@ -18,15 +16,15 @@ class User(BaseModel):
 class ShowUser(BaseModel):
     name: str
     email: str
-    blogs: List[Blog] # listing all blogs that user have
-    class Config():
+    blogs: List[Blog]
+
+    class Config:
         from_attributes = True
 
-class Showblog(BaseModel):
-    title: str
-    body: str
-    creator: ShowUser
-    class Config():
+class Showblog(Blog):
+    creator: Optional['ShowUser']  # forward reference
+
+    class Config:
         from_attributes = True
 
 class Login(BaseModel):
@@ -37,6 +35,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-
 class TokenData(BaseModel):
     email: Optional[str] = None
+
+Showblog.update_forward_refs()
