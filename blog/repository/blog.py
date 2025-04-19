@@ -1,36 +1,54 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 from sqlalchemy.orm import Session
 from .. import schemas, models
+from ..oaut2 import get_current_user
 
 
 def get_all(db:Session):
-    blogs = db.query(models.Blog).all()
-    return blogs
+    return db.query(models.Blog).all()
 
-def create(db:Session, request: schemas.Blog):
-    new_blog = models.Blog(title=request.title, body=request.body, user_id=1)
+def get_all_yours(db: Session, current_user: models.User):
+    return db.query(models.Blog).filter(models.Blog.user_id == current_user.id).all()
+
+
+def create(db: Session, request: schemas.Blog, current_user: models.User):
+    new_blog = models.Blog(title=request.title, body=request.body, user_id=current_user.id)
     db.add(new_blog)
     db.commit()
     db.refresh(new_blog)
     return new_blog
 
-def delete(id: int, db: Session):
-    blog = db.query(models.Blog).filter(models.Blog.id == id)
-    if not blog.first():
-        raise HTTPException(status_code=404, detail=f"Blog with id {id} not found")
-    else:
-        blog.delete(synchronize_session=False)
-        db.commit()
-        return f"blog with this id {id} was deleted"
-def update(id: int, request: schemas.Blog, db: Session):
-    blog = db.query(models.Blog).filter(models.Blog.id == id)
-    if not blog.first():
-        raise HTTPException(status_code=404, detail=f"Blog with id {id} not found")
-    blog.update(request.model_dump())
+
+def delete(id: int, db: Session, current_user: models.User):
+    q = db.query(models.Blog).filter(
+        models.Blog.id == id,
+        models.Blog.user_id == current_user.id  # чтобы удалять только свой
+    )
+    obj = q.first()
+    if not obj:
+        raise HTTPException(status_code=404, detail=f"Blog {id} not found")
+    q.delete(synchronize_session=False)
     db.commit()
-    return "updated title"
-def show(id: int, db: Session):
-    blog = db.query(models.Blog).filter(models.Blog.id == id).first()
-    if not blog:
-        raise HTTPException(status_code=404, detail=f"Blog with id {id} not found")
-    return blog
+    return {"detail": f"Deleted blog {id}"}
+
+
+def update(id: int, request: schemas.Blog, db: Session, current_user: models.User):
+    q = db.query(models.Blog).filter(
+        models.Blog.id == id,
+        models.Blog.user_id == current_user.id
+    )
+    if not q.first():
+        raise HTTPException(status_code=404, detail=f"Blog {id} not found")
+    q.update(request.model_dump())
+    db.commit()
+    return {"detail": "Updated"}
+
+
+def show(id: int, db: Session, current_user: models.User):
+    obj = db.query(models.Blog).filter(
+        models.Blog.id == id,
+        models.Blog.user_id == current_user.id
+    ).first()
+    if not obj:
+        raise HTTPException(status_code=404, detail=f"Blog {id} not found")
+    return obj
