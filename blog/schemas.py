@@ -38,4 +38,9 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: Optional[str] = None
 
+class ChatRequest(BaseModel):
+    message: str
+class ChatResponse(BaseModel):
+    reply: str
+
 Showblog.update_forward_refs()
