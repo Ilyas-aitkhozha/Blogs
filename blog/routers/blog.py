@@ -17,7 +17,7 @@ get_db = database.get_db
 @router.get("/", response_model=List[schemas.Showblog])
 def get_all_blogs(db: Session = Depends(get_db)):
     return blog.get_all(db)
-
+#only yours blog
 @router.get("/yours", response_model=List[schemas.Showblog])
 def get_your_blogs(
     db: Session = Depends(get_db),
@@ -25,7 +25,7 @@ def get_your_blogs(
 ):
     return blog.get_all_yours(db, current_user)
 
-
+#just creating blogs
 @router.post("/", status_code = status.HTTP_201_CREATED)
 def create(request:schemas.Blog, db:Session = Depends(get_db),current_user: schemas.User = Depends(oaut2.get_current_user)):
     return blog.create(db, request, current_user)
