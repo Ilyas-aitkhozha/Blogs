@@ -1,23 +1,30 @@
-from sqlalchemy import Integer, String, Column, ForeignKey
+from sqlalchemy import Integer, String, Column, ForeignKey, DateTime
 from .database import Base
 from sqlalchemy.orm import relationship
-
-#call module for sqlalchemy
+from datetime import datetime
 
 class Blog(Base):
     __tablename__ = 'blogs'
-    id = Column(Integer, primary_key=True, index = True)
-    title = Column(String)
-    body = Column(String)
-    user_id = Column(Integer, ForeignKey("users.id")) # made relations with blogs and user
-    creator = relationship("User", back_populates="blogs")
+    id       = Column(Integer, primary_key=True, index=True)
+    title    = Column(String)
+    body     = Column(String)
+    user_id  = Column(Integer, ForeignKey("users.id"))
+    creator  = relationship("User", back_populates="blogs")   # points to User.blogs
 
 class User(Base):
     __tablename__ = 'users'
-    id = Column(Integer, primary_key=True, index = True)
-    name = Column(String)
-    email = Column(String)
+    id       = Column(Integer, primary_key=True, index=True)
+    name     = Column(String)
+    email    = Column(String)
     password = Column(String)
 
-    blogs = relationship("Blog", back_populates="creator")
+    # ← You must add this line back:
+    blogs    = relationship("Blog", back_populates="creator")
 
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    id         = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, index=True)
+    role       = Column(String)
+    content    = Column(String)
+    timestamp  = Column(DateTime, default=datetime.utcnow)
