@@ -20,7 +20,7 @@ def generate_reply(db, session_id, user_input):
         })
     messages.append({"role": "user", "parts": [user_input]})
 
-    model = GenerativeModel("gemini-1.5-flash")  # или "gemini-pro"
+    model = GenerativeModel("gemini-1.5-flash")
 
     response = model.generate_content(messages)
     reply = response.text.strip()
