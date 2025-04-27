@@ -6,7 +6,7 @@ from ..hashing import Hash
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 @router.post("/signup", response_model=schemas.UserRead, status_code=status.HTTP_201_CREATED)
 def signup(
