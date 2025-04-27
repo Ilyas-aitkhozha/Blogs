@@ -42,5 +42,6 @@ class ChatRequest(BaseModel):
     message: str
 class ChatResponse(BaseModel):
     reply: str
+    session_id: str
 
 Showblog.update_forward_refs()
