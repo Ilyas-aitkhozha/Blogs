@@ -3,7 +3,7 @@ from ..models import ChatMessage
 from blog.models import SessionRecord
 
 def create_session(db: Session, session_id: str, user_id:int = None):
-    new_session = SessionRecord(id=session_id)
+    new_session = SessionRecord(id=session_id, user_id = user_id)
     db.add(new_session)
     db.commit()
     db.refresh(new_session)
