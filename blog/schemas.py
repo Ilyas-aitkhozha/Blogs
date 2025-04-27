@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import List, Optional
 
 class Blog(BaseModel):
@@ -45,17 +45,5 @@ class ChatResponse(BaseModel):
     session_id: str
 
 
-class UserCreate(BaseModel):
-    name: str
-    email: EmailStr
-    password: str
-
-class UserRead(BaseModel):
-    id: int
-    name: str
-    email: EmailStr
-
-    class Config:
-        orm_mode = True
 
 Showblog.update_forward_refs()
