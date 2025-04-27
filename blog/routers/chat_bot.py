@@ -24,5 +24,5 @@ def chat(
         session_id = str(uuid.uuid4())
         ai_memory.create_session(db, session_id, user_id=current_user.id)
 
-    reply = ai_service.generate_reply(db, session_id, req.message)
+    reply = ai_service.generate_reply(db, session_id, req.message, user_id = current_user.id)
     return ChatResponse(reply=reply, session_id=session_id)
