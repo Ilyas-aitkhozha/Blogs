@@ -8,6 +8,7 @@ class SessionRecord(Base):
     __tablename__ = "sessions"
 
     id = Column(String, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Blog(Base):
