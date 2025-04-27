@@ -1,26 +1,28 @@
 import uuid
-from fastapi import Depends, APIRouter, Header, HTTPException
+from fastapi import Depends, APIRouter, Header
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..schemas import ChatRequest, ChatResponse
-from ..repository import ai_service, ai_memory
+from blog import models
+from blog.oaut2 import get_current_user
+from blog.repository import ai_memory, ai_service
 
 router = APIRouter(
     prefix="/chat",
     tags=["chat"],
 )
 
+
 @router.post("/", response_model=ChatResponse)
 def chat(
     req: ChatRequest,
     db: Session = Depends(get_db),
-    session_id: str = Header(None)
+    session_id: str = Header(None),
+    current_user: models.User = Depends(get_current_user)
 ):
     if session_id is None:
         session_id = str(uuid.uuid4())
-        ai_memory.create_session(db, session_id)
-    else:
-        if not ai_memory.get_session(db, session_id):
-            raise HTTPException(status_code=400, detail="Session ID not found")
+        ai_memory.create_session(db, session_id, user_id=current_user.id)
+
     reply = ai_service.generate_reply(db, session_id, req.message)
-    return ChatResponse(reply=reply)
+    return ChatResponse(reply=reply, session_id=session_id)
