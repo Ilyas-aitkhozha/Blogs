@@ -1,31 +1,20 @@
-from fastapi import APIRouter,Depends, status
-from typing import List
-from .. import database, schemas
+# blog/routers/user.py
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from ..repository import user
+from blog.schemas import user as user_schema
+from blog.database import get_db
+from blog.repository import user as user_repository
 
+router = APIRouter(prefix="/users", tags=["Users"])
 
-router = APIRouter(
-    prefix = '/user',
-    tags = ["Users"]
-)
+@router.post("/", response_model=user_schema.ShowUser)
+def create_user(request: user_schema.UserCreate, db: Session = Depends(get_db)):
+    return user_repository.create_user(db, request)
 
-get_db = database.get_db
+@router.get("/{id}", response_model=user_schema.ShowUser)
+def get_user(id: int, db: Session = Depends(get_db)):
+    return user_repository.get_user_by_id(db, id)
 
-@router.get("/", response_model=List[schemas.ShowUser])
-def get_all_users(db:Session = Depends(get_db)):
-    return user.show_all(db)
-
-@router.get("/{id}", response_model = schemas.ShowUser)
-def get_user_by_id(id:int, db:Session = Depends(get_db)):
-    return user.show(id, db)
-
-
-@router.post("/", response_model = schemas.ShowUser,status_code = status.HTTP_201_CREATED)
-def create_user(request: schemas.User,  db:Session = Depends(get_db)):
-    return user.create(request, db)
-
-
-@router.delete("/{id}", status_code = status.HTTP_204_NO_CONTENT)
-def delete_user_by_id(id: int, db:Session = Depends(get_db)):
-    return user.delete_by_id(id, db)
+@router.get("/", response_model=list[user_schema.ShowUser])
+def get_all_users(db: Session = Depends(get_db)):
+    return user_repository.get_all_users(db)
