@@ -42,13 +42,19 @@ def get_tickets_assigned_to_user(db: Session, current_user: models.User):
         models.Ticket.status.in_(["open", "in_progress"])
     ).all()
 
-def update_ticket(db: Session, ticket_id: int, ticket_update: TicketUpdate):
+def update_ticket(db: Session, ticket_id: int, ticket_update: TicketUpdate, current_user: models.User):
     ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
     if not ticket:
         raise HTTPException(status_code=404, detail=f"Ticket {ticket_id} not found")
     if ticket_update.status is not None:
+        if current_user.role != "admin":
+            raise HTTPException(status_code=403, detail="Only admins can change ticket status.")
+        if ticket.assigned_to != current_user.id:
+            raise HTTPException(status_code=403, detail="You can only change tickets assigned to you.")
         ticket.status = ticket_update.status
     if ticket_update.assigned_to is not None:
+        if current_user.role != "user":
+            raise HTTPException(status_code=403, detail="Only users can assign tickets.")
         ticket.assigned_to = ticket_update.assigned_to
     db.commit()
     db.refresh(ticket)
