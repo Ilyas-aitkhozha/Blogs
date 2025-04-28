@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from enum import Enum
-
+from datetime import datetime
 class TicketStatus(str, Enum):
     open = "open"
     in_progress = "in_progress"
@@ -23,7 +23,7 @@ class TicketOut(TicketBase):
     status: TicketStatus
     created_by: int
     assigned_to: Optional[int]
-    created_at: str
+    created_at: datetime
 
     class Config:
         from_attributes = True
