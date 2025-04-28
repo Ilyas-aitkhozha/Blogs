@@ -1,14 +1,14 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum as SqlEnum
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from .database import Base
-import enum
+from enum import Enum
 
-class UserRole(str, enum.Enum):
+class UserRole(str, Enum):
     user = "user"
     admin = "admin"
 
-class TicketStatus(str, enum.Enum):
+class TicketStatus(str, Enum):
     open = "open"
     in_progress = "in_progress"
     closed = "closed"
@@ -27,21 +27,20 @@ class User(Base):
     name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
-    role = Column(Enum(UserRole), default=UserRole.user)
+    role = Column(SqlEnum(UserRole, native_enum=False), default=UserRole.user)
     tickets_created = relationship("Ticket", back_populates="creator", foreign_keys="Ticket.created_by")
     tickets_assigned = relationship("Ticket", back_populates="assignee", foreign_keys="Ticket.assigned_to")
     sessions = relationship("SessionRecord", back_populates="user")
 
-
 class Ticket(Base):
     __tablename__ = "tickets"
-    id          = Column(Integer, primary_key=True, index=True)
-    title       = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
     description = Column(String, nullable=False)
-    status      = Column(Enum(TicketStatus), default=TicketStatus.open)
-    created_by  = Column(Integer, ForeignKey("users.id"))
+    status = Column(SqlEnum(TicketStatus, native_enum=False), default=TicketStatus.open)
+    created_by = Column(Integer, ForeignKey("users.id"))
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     creator = relationship("User", back_populates="tickets_created", foreign_keys="Ticket.created_by")
     assignee = relationship("User", back_populates="tickets_assigned", foreign_keys="Ticket.assigned_to")
 
