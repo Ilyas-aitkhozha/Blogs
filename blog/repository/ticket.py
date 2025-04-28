@@ -1,54 +1,47 @@
-from fastapi import HTTPException, Depends
 from sqlalchemy.orm import Session
-from .. import schemas, models
-from ..oaut2 import get_current_user
+from blog import models
+from blog.schemas.ticket import TicketCreate, TicketUpdate
+from fastapi import HTTPException
 
-
-def get_all(db:Session):
-    return db.query(models.Blog).all()
-
-def get_all_yours(db: Session, current_user: models.User):
-    return db.query(models.Blog).filter(models.Blog.user_id == current_user.id).all()
-
-
-def create(db: Session, request: schemas.Blog, current_user: models.User):
-    new_blog = models.Blog(title=request.title, body=request.body, user_id=current_user.id)
-    db.add(new_blog)
-    db.commit()
-    db.refresh(new_blog)
-    return new_blog
-
-
-def delete(id: int, db: Session, current_user: models.User):
-    q = db.query(models.Blog).filter(
-        models.Blog.id == id,
-        models.Blog.user_id == current_user.id  # чтобы удалять только свой
+def create_ticket(db: Session, ticket: TicketCreate, user_id: int):
+    new_ticket = models.Ticket(
+        title=ticket.title,
+        description=ticket.description,
+        created_by=user_id
     )
-    obj = q.first()
-    if not obj:
-        raise HTTPException(status_code=404, detail=f"Blog {id} not found")
-    q.delete(synchronize_session=False)
+    db.add(new_ticket)
     db.commit()
-    return {"detail": f"Deleted blog {id}"}
+    db.refresh(new_ticket)
+    return new_ticket
 
+def get_ticket_by_id(db: Session, ticket_id: int):
+    ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail=f"Ticket {ticket_id} not found")
+    return ticket
 
-def update(id: int, request: schemas.Blog, db: Session, current_user: models.User):
-    q = db.query(models.Blog).filter(
-        models.Blog.id == id,
-        models.Blog.user_id == current_user.id
-    )
-    if not q.first():
-        raise HTTPException(status_code=404, detail=f"Blog {id} not found")
-    q.update(request.model_dump())
+def get_all_tickets(db: Session):
+    return db.query(models.Ticket).all()
+
+def get_user_tickets(db: Session, user_id: int):
+    return db.query(models.Ticket).filter(models.Ticket.created_by == user_id).all()
+
+def update_ticket(db: Session, ticket_id: int, ticket_update: TicketUpdate):
+    ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail=f"Ticket {ticket_id} not found")
+    if ticket_update.status is not None:
+        ticket.status = ticket_update.status
+    if ticket_update.assigned_to is not None:
+        ticket.assigned_to = ticket_update.assigned_to
     db.commit()
-    return {"detail": "Updated"}
+    db.refresh(ticket)
+    return ticket
 
-
-def show(id: int, db: Session, current_user: models.User):
-    obj = db.query(models.Blog).filter(
-        models.Blog.id == id,
-        models.Blog.user_id == current_user.id
-    ).first()
-    if not obj:
-        raise HTTPException(status_code=404, detail=f"Blog {id} not found")
-    return obj
+def delete_ticket(db: Session, ticket_id: int):
+    ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail=f"Ticket {ticket_id} not found")
+    db.delete(ticket)
+    db.commit()
+    return {"detail": f"Ticket {ticket_id} deleted"}
