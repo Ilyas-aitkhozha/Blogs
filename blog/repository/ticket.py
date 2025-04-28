@@ -3,11 +3,20 @@ from blog import models
 from blog.schemas.ticket import TicketCreate, TicketUpdate
 from fastapi import HTTPException
 
+
 def create_ticket(db: Session, ticket: TicketCreate, user_id: int):
+    assigned_user_id = None
+    if ticket.assigned_to_name:
+        assigned_user = db.query(models.User).filter(models.User.name == ticket.assigned_to_name).first()
+        if not assigned_user:
+            raise HTTPException(status_code=404, detail="Assigned user not found")
+        assigned_user_id = assigned_user.id
+
     new_ticket = models.Ticket(
         title=ticket.title,
         description=ticket.description,
-        created_by=user_id
+        created_by=user_id,
+        assigned_to=assigned_user_id
     )
     db.add(new_ticket)
     db.commit()
