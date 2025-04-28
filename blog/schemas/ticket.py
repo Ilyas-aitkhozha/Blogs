@@ -11,7 +11,7 @@ class TicketBase(BaseModel):
     title: str
     description: str
 
-class TicketCreate(BaseModel):
+class TicketCreate(TicketBase):
     assigned_to_name: Optional[str] = None # for names
 
 class TicketUpdate(BaseModel):
