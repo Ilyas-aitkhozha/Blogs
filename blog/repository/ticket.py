@@ -3,7 +3,6 @@ from blog import models
 from blog.schemas.ticket import TicketCreate, TicketUpdate
 from fastapi import HTTPException
 
-
 def create_ticket(db: Session, ticket: TicketCreate, user_id: int):
     assigned_user_id = None
     if ticket.assigned_to_name:
@@ -34,6 +33,14 @@ def get_all_tickets(db: Session):
 
 def get_user_tickets(db: Session, user_id: int):
     return db.query(models.Ticket).filter(models.Ticket.created_by == user_id).all()
+
+def get_tickets_assigned_to_user(db: Session, current_user: models.User):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can view assigned tickets.")
+    return db.query(models.Ticket).filter(
+        models.Ticket.assigned_to == current_user.id,
+        models.Ticket.status.in_(["open", "in_progress"])
+    ).all()
 
 def update_ticket(db: Session, ticket_id: int, ticket_update: TicketUpdate):
     ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
