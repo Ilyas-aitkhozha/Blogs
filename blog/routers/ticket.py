@@ -74,4 +74,3 @@ def delete_ticket(db: Session, ticket_id: int, current_user: models.User):
     db.delete(ticket)
     db.commit()
     return {"detail": f"Ticket {ticket_id} deleted"}
-
