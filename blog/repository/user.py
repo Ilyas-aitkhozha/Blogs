@@ -3,6 +3,7 @@ from blog import models
 from blog.hashing import Hash
 from blog.schemas.user import UserCreate
 from pydantic import EmailStr
+from sqlalchemy import select
 from fastapi import HTTPException
 
 def create_user(db: Session, user: UserCreate):
@@ -27,3 +28,11 @@ def get_user_by_email(db: Session, email: EmailStr):
 
 def get_all_users(db: Session):
     return db.query(models.User).all()
+
+def get_available_users_by_role(db: Session, role: str):
+    busy_user_ids = select(models.Ticket.assigned_to).where(models.Ticket.status == models.TicketStatus.in_progress)
+    return db.query(models.User).filter(
+        models.User.role == role,
+        ~models.User.id.in_(busy_user_ids)
+    ).all()
+
