@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 from google.generativeai import GenerativeModel
 from blog.repository.ai_memory import get_history, save_message
+from blog.repository.user import get_available_users_by_role
 
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
@@ -51,7 +52,6 @@ Always keep answers short, clear, and friendly. If you recognize a request for h
     response = model.generate_content(messages)
     reply = response.text.strip()
     if any(kw in user_input.lower() for kw in ["help", "problem", "issue", "debug", "assign", "urgent"]):
-        from blog.repository.user import get_available_users_by_role
         admins = get_available_users_by_role(db, "admin")
         if admins:
             names = ', '.join([admin.name for admin in admins])
