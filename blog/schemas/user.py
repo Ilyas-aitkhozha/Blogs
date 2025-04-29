@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import List, Annotated
+from typing import List
+from typing_extensions import Annotated
 from enum import Enum
 
 class UserRole(str, Enum):
