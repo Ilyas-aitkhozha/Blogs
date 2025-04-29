@@ -2,6 +2,11 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import List
 from typing_extensions import Annotated
 from enum import Enum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from blog.schemas.ticket import TicketOut
+
 
 class UserRole(str, Enum):
     user = "user"
@@ -28,6 +33,3 @@ class UserWithTickets(ShowUser):
 
     class Config:
         from_attributes = True
-
-from .ticket import TicketOut
-UserWithTickets.model_rebuild()
