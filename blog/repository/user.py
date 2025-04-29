@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select
 from fastapi import HTTPException
 from pydantic import EmailStr
 from blog import models
@@ -30,10 +29,8 @@ def get_all_users(db: Session):
     return db.query(models.User).all()
 
 def get_available_users_by_role(db: Session, role: str):
-    busy_user_ids = select(models.Ticket.assigned_to).where(
-        models.Ticket.status == models.TicketStatus.in_progress
-    )
     return db.query(models.User).filter(
         models.User.role == role,
-        ~models.User.id.in_(busy_user_ids)
+        models.User.is_available == True
     ).all()
+
