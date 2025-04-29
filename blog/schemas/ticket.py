@@ -25,7 +25,7 @@ class TicketOut(TicketBase):
     id: int
     status: TicketStatus
     created_by: user.ShowUser
-    assigned_to: Optional[int]
+    assigned_to: Optional[user.ShowUser]
     created_at: datetime
 
     class Config:
