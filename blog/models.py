@@ -44,8 +44,8 @@ class Ticket(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),onupdate=lambda: datetime.now(timezone.utc))
 
-    creator = relationship("User", back_populates="tickets_created", foreign_keys="Ticket.created_by")
-    assignee = relationship("User", back_populates="tickets_assigned", foreign_keys="Ticket.assigned_to")
+    creator = relationship("User", back_populates="tickets_created", foreign_keys=[created_by])
+    assignee = relationship("User", back_populates="tickets_assigned", foreign_keys=[assigned_to])
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
