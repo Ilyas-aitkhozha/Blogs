@@ -33,4 +33,3 @@ def get_available_users_by_role(db: Session, role: str):
         models.User.role == role,
         models.User.is_available == True
     ).all()
-
