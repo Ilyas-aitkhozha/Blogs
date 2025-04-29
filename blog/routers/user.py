@@ -18,3 +18,13 @@ def get_user(id: int, db: Session = Depends(get_db)):
 @router.get("/", response_model=list[user_schema.ShowUser])
 def get_all_users(db: Session = Depends(get_db)):
     return user_repository.get_all_users(db)
+
+@router.get("/available-admins", response_model=list[user_schema.ShowUser])
+def get_available_admins(db: Session = Depends(get_db)):
+    from blog.repository import user as user_repository
+    return user_repository.get_available_users_by_role(db, "admin")
+
+@router.get("/available-users", response_model=list[user_schema.ShowUser])
+def get_available_users(db: Session = Depends(get_db)):
+    from blog.repository import user as user_repository
+    return user_repository.get_available_users_by_role(db, "user")
