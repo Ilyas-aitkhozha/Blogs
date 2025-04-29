@@ -2,6 +2,9 @@ from pydantic import BaseModel
 from typing import Optional
 from enum import Enum
 from datetime import datetime
+from blog.schemas import user
+
+
 class TicketStatus(str, Enum):
     open = "open"
     in_progress = "in_progress"
@@ -21,7 +24,7 @@ class TicketUpdate(BaseModel):
 class TicketOut(TicketBase):
     id: int
     status: TicketStatus
-    created_by: int
+    created_by: user.ShowUser
     assigned_to: Optional[int]
     created_at: datetime
 
