@@ -1,18 +1,26 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from blog import models, jwttoken, database
+from blog import models, jwttoken
 from blog.schemas.auth import Token
 from blog.hashing import Hash
+from blog.schemas import user
+from blog.oaut2 import get_current_user
+from blog.database import get_db
 
 router = APIRouter(tags=["Login"])
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+@router.get("/auth/me", response_model=user.ShowUser)
+def get_me(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    return current_user
 
 @router.post("/login", response_model=Token)
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(database.get_db),
+    db: Session = Depends(get_db),
 ):
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
     if not user or not Hash.verify(user.password, form_data.password):
@@ -23,18 +31,3 @@ def login(
         )
     token = jwttoken.create_access_token(data={"sub": str(user.id)})
     return {"access_token": token, "token_type": "bearer"}
-
-def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(database.get_db)
-) -> models.User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    user_id = jwttoken.verify_token(token, credentials_exception)
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise credentials_exception
-    return user
