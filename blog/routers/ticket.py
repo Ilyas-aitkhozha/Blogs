@@ -64,7 +64,7 @@ def update_ticket(
     return ticket_repository.update_ticket(db, ticket_id, request, current_user)
 
 
-@router.delete("/{ticket_id}", response_model = ticket_schema.TicketOut)
+@router.delete("/{ticket_id}", response_model = None)
 def delete_ticket(db: Session, ticket_id: int, current_user: models.User):
     ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
     if not ticket:
