@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from blog.schemas import ticket as ticket_schema
 from blog.database import get_db
 from blog.repository import ticket as ticket_repository
+# fix this import typo if needed:
 from blog.oaut2 import get_current_user
 from blog import models
 
@@ -35,8 +36,7 @@ def get_ticket(
     ticket_id: int,
     db: Session = Depends(get_db),
 ):
-    ticket = ticket_repository.get_ticket_by_id(db, ticket_id)
-    return ticket
+    return ticket_repository.get_ticket_by_id(db, ticket_id)
 
 @router.get("/my-created/", response_model=list[ticket_schema.TicketOut])
 def get_my_created_tickets(
@@ -52,8 +52,6 @@ def get_my_assigned_tickets(
 ):
     return ticket_repository.get_tickets_assigned_to_user(db, current_user)
 
-
-
 @router.put("/{ticket_id}", response_model=ticket_schema.TicketOut)
 def update_ticket(
     ticket_id: int,
@@ -63,9 +61,12 @@ def update_ticket(
 ):
     return ticket_repository.update_ticket(db, ticket_id, request, current_user)
 
-
 @router.delete("/{ticket_id}", response_model=None)
-def delete_ticket(ticket_id: int, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_user)):
+def delete_ticket(
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
     ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
     if not ticket:
         raise HTTPException(status_code=404, detail=f"Ticket {ticket_id} not found")
