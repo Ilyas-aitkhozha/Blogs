@@ -34,7 +34,6 @@ def get_all_tickets(
 def get_ticket(
     ticket_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
 ):
     ticket = ticket_repository.get_ticket_by_id(db, ticket_id)
     return ticket
@@ -54,11 +53,6 @@ def get_my_assigned_tickets(
     return ticket_repository.get_tickets_assigned_to_user(db, current_user)
 
 
-ALLOWED_STATUS_TRANSITIONS = {
-    "open": ["in_progress"],
-    "in_progress": ["closed"],
-    "closed": []
-}
 
 @router.put("/{ticket_id}", response_model=ticket_schema.TicketOut)
 def update_ticket(
@@ -67,36 +61,10 @@ def update_ticket(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail=f"Ticket {ticket_id} not found")
-    if request.status is not None:
-        if current_user.role != "admin":
-            raise HTTPException(status_code=403, detail="Only admins can update ticket status.")
-        if ticket.assigned_to != current_user.id:
-            raise HTTPException(status_code=403, detail="You can only update status of tickets assigned to you.")
-        current_status = ticket.status.value if hasattr(ticket.status, "value") else ticket.status
-        next_status = request.status.value if hasattr(request.status, "value") else request.status
-        allowed_next_statuses = ALLOWED_STATUS_TRANSITIONS.get(current_status, [])
-        if next_status not in allowed_next_statuses:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Cannot transition from {current_status} to {next_status}. Allowed: {allowed_next_statuses}"
-            )
-        ticket.status = request.status
-    if request.assigned_to is not None:
-        if current_user.role != "user":
-            raise HTTPException(status_code=403, detail="Only users can assign tickets.")
-        if ticket.created_by != current_user.id:
-            raise HTTPException(status_code=403, detail="You can only reassign tickets you created.")
-        ticket.assigned_to = request.assigned_to
-    db.commit()
-    db.refresh(ticket)
-    return ticket
+    return ticket_repository.update_ticket(db, ticket_id, request, current_user)
 
 
-
-
+@router.delete("/{ticket_id}", response_model = ticket_schema.TicketOut)
 def delete_ticket(db: Session, ticket_id: int, current_user: models.User):
     ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
     if not ticket:
