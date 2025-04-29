@@ -16,6 +16,7 @@ class UserCreate(UserBase):
 class ShowUser(UserBase):
     id: int
     role: UserRole
+    is_available: bool
 
     class Config:
         from_attributes = True
