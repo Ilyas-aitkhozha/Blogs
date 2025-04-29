@@ -3,6 +3,7 @@ from blog import models
 from blog.schemas.ticket import TicketCreate, TicketUpdate, TicketOut
 from fastapi import HTTPException
 
+
 def create_ticket(db: Session, ticket: TicketCreate, user_id: int):
     assigned_user_id = None
     if ticket.assigned_to_name:
@@ -85,7 +86,6 @@ def update_ticket(db: Session, ticket_id: int, ticket_update: TicketUpdate, curr
                 detail=f"Cannot transition from {current_status} to {next_status}. Allowed: {allowed_next_statuses}"
             )
         ticket.status = ticket_update.status
-
     if ticket_update.assigned_to is not None:
         if current_user.role != "user":
             raise HTTPException(status_code=403, detail="Only users can assign tickets.")
@@ -97,15 +97,13 @@ def update_ticket(db: Session, ticket_id: int, ticket_update: TicketUpdate, curr
         if not new_assigned_user.is_available:
             raise HTTPException(status_code=400, detail="Assigned user is not available for tasks.")
         ticket.assigned_to = ticket_update.assigned_to
-
     db.commit()
-    db.refresh(ticket)
-
-    ticket = db.query(models.Ticket).options(
-        joinedload(models.Ticket.creator), joinedload(models.Ticket.assignee)
+    ticket_with_users = db.query(models.Ticket).options(
+        joinedload(models.Ticket.creator),
+        joinedload(models.Ticket.assignee)
     ).filter(models.Ticket.id == ticket.id).first()
 
-    return TicketOut.model_validate(ticket)
+    return TicketOut.model_validate(ticket_with_users)
 
 def delete_ticket(db: Session, ticket_id: int):
     ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
