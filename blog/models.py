@@ -16,7 +16,7 @@ class TicketStatus(str, Enum):
 class SessionRecord(Base):
     __tablename__ = "sessions"
     id = Column(String, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete = "CASCADE"), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     user = relationship("User", back_populates="sessions")
 
@@ -29,9 +29,9 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
     role = Column(SqlEnum(UserRole, native_enum=False), default=UserRole.user)
-    tickets_created = relationship("Ticket", back_populates="creator", foreign_keys="Ticket.created_by")
+    tickets_created = relationship("Ticket", back_populates="creator", foreign_keys="Ticket.created_by",cascade="all, delete-orphan")
     tickets_assigned = relationship("Ticket", back_populates="assignee", foreign_keys="Ticket.assigned_to")
-    sessions = relationship("SessionRecord", back_populates="user")
+    sessions = relationship("SessionRecord", back_populates="user",cascade="all, delete-orphan")
 
 class Ticket(Base):
     __tablename__ = "tickets"
@@ -39,9 +39,11 @@ class Ticket(Base):
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
     status = Column(SqlEnum(TicketStatus, native_enum=False), default=TicketStatus.open)
-    created_by = Column(Integer, ForeignKey("users.id"))
-    assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete = "CASCADE"))
+    assigned_to = Column(Integer, ForeignKey("users.id", ondelete = "SET NULL"), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),onupdate=lambda: datetime.now(timezone.utc))
+
     creator = relationship("User", back_populates="tickets_created", foreign_keys="Ticket.created_by")
     assignee = relationship("User", back_populates="tickets_assigned", foreign_keys="Ticket.assigned_to")
 
