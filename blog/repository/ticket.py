@@ -1,6 +1,6 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from blog import models
-from blog.schemas.ticket import TicketCreate, TicketUpdate
+from blog.schemas.ticket import TicketCreate, TicketUpdate, TicketOut
 from fastapi import HTTPException
 
 def create_ticket(db: Session, ticket: TicketCreate, user_id: int):
@@ -22,27 +22,43 @@ def create_ticket(db: Session, ticket: TicketCreate, user_id: int):
     db.add(new_ticket)
     db.commit()
     db.refresh(new_ticket)
-    return new_ticket
+
+    ticket_with_users = db.query(models.Ticket).options(
+        joinedload(models.Ticket.creator), joinedload(models.Ticket.assignee)
+    ).filter(models.Ticket.id == new_ticket.id).first()
+
+    return TicketOut.model_validate(ticket_with_users)
 
 def get_ticket_by_id(db: Session, ticket_id: int):
-    ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
+    ticket = db.query(models.Ticket).options(
+        joinedload(models.Ticket.creator), joinedload(models.Ticket.assignee)
+    ).filter(models.Ticket.id == ticket_id).first()
     if not ticket:
         raise HTTPException(status_code=404, detail=f"Ticket {ticket_id} not found")
-    return ticket
+    return TicketOut.model_validate(ticket)
 
 def get_all_tickets(db: Session):
-    return db.query(models.Ticket).all()
+    tickets = db.query(models.Ticket).options(
+        joinedload(models.Ticket.creator), joinedload(models.Ticket.assignee)
+    ).all()
+    return [TicketOut.model_validate(t) for t in tickets]
 
 def get_user_tickets(db: Session, user_id: int):
-    return db.query(models.Ticket).filter(models.Ticket.created_by == user_id).all()
+    tickets = db.query(models.Ticket).options(
+        joinedload(models.Ticket.creator), joinedload(models.Ticket.assignee)
+    ).filter(models.Ticket.created_by == user_id).all()
+    return [TicketOut.model_validate(t) for t in tickets]
 
 def get_tickets_assigned_to_user(db: Session, current_user: models.User):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only admins can view assigned tickets.")
-    return db.query(models.Ticket).filter(
+    tickets = db.query(models.Ticket).options(
+        joinedload(models.Ticket.creator), joinedload(models.Ticket.assignee)
+    ).filter(
         models.Ticket.assigned_to == current_user.id,
         models.Ticket.status.in_(["open", "in_progress"])
     ).all()
+    return [TicketOut.model_validate(t) for t in tickets]
 
 ALLOWED_STATUS_TRANSITIONS = {
     "open": ["in_progress"],
@@ -54,6 +70,7 @@ def update_ticket(db: Session, ticket_id: int, ticket_update: TicketUpdate, curr
     ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
     if not ticket:
         raise HTTPException(status_code=404, detail=f"Ticket {ticket_id} not found")
+
     if ticket_update.status is not None:
         if current_user.role != "admin":
             raise HTTPException(status_code=403, detail="Only admins can update ticket status.")
@@ -74,16 +91,21 @@ def update_ticket(db: Session, ticket_id: int, ticket_update: TicketUpdate, curr
             raise HTTPException(status_code=403, detail="Only users can assign tickets.")
         if ticket.created_by != current_user.id:
             raise HTTPException(status_code=403, detail="You can only reassign tickets you created.")
-
         new_assigned_user = db.query(models.User).filter(models.User.id == ticket_update.assigned_to).first()
         if not new_assigned_user:
             raise HTTPException(status_code=404, detail="Assigned user not found.")
         if not new_assigned_user.is_available:
             raise HTTPException(status_code=400, detail="Assigned user is not available for tasks.")
         ticket.assigned_to = ticket_update.assigned_to
+
     db.commit()
     db.refresh(ticket)
-    return ticket
+
+    ticket = db.query(models.Ticket).options(
+        joinedload(models.Ticket.creator), joinedload(models.Ticket.assignee)
+    ).filter(models.Ticket.id == ticket.id).first()
+
+    return TicketOut.model_validate(ticket)
 
 def delete_ticket(db: Session, ticket_id: int):
     ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
