@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 import google.generativeai as genai
 from google.generativeai import GenerativeModel
@@ -6,7 +7,32 @@ from tickets.repository.ai_memory import get_history, save_message
 from tickets.repository.user import get_available_users_by_role
 
 load_dotenv()
+TASK_ANALYSIS_PROMPT ="""
+You will receive a user’s free-form task description.
+Respond ONLY with valid JSON containing:
+  - title: a concise one-line summary of the task
+  - description: a brief paragraph elaborating on why and what needs doing
+  - candidate_roles: a JSON array of usernames or roles best suited, ordered by least current workload
+Do NOT include any extra text outside that JSON.
+"""
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
+def analyze_tasks(db, session_id:str,user_input:str,user_id):
+    history = get_history(db, session_id, user_id)
+    messages = [
+        {"role":"system", "parts": [TASK_ANALYSIS_PROMPT] }
+    ]
+    for msg in history:
+        role = "assistant" if msg.role == "assistant" else "user"
+        messages.append({"role": role, "parts": [msg.content]})
+    messages.append({"role": "user", "parts": [user_input]})
+    model = GenerativeModel("gemini-1.5-flash")
+    response = model.generate_content(messages).text
+    try:
+        return json.loads(response)
+    except json.decoder.JSONDecodeError:
+        raise ValueError("Could not decode response")
+
 
 def generate_reply(
     db,
