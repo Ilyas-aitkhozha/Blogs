@@ -26,39 +26,31 @@ oauth.register(
 
 @router.get("/auth/google")
 async def login_via_google(request: Request):
-    # ✅ Use full URL manually to avoid starlette url_for issues
     redirect_uri = "https://ticketsystem-qfj9.onrender.com/auth/google/callback"
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @router.get("/auth/google/callback")
 async def auth_callback(request: Request, db: Session = Depends(get_db)):
     try:
-        # Get access token from Google
         token = await oauth.google.authorize_access_token(request)
 
-        # Fetch user info
-        resp = await oauth.google.get('userinfo', token=token)
+        # <— either Option A (with api_base_url) or Option B (full URL)
+        resp = await oauth.google.get('https://www.googleapis.com/oauth2/v1/userinfo',
+                                      token=token)
         user_info = resp.json()
 
-        # Extract email
         email = user_info.get("email")
         if not email:
-            raise HTTPException(status_code=400, detail="Google login failed: no email returned")
+            raise HTTPException(400, "No email returned")
 
-        # Create or fetch user in DB
-        user = db.query(models.User).filter(models.User.email == email).first()
+        user = db.query(models.User).filter_by(email=email).first()
         if not user:
-            user = models.User(email=email, role="user", password="oauth")  # dummy password
-            db.add(user)
-            db.commit()
-            db.refresh(user)
+            user = models.User(email=email, role="user", password="oauth")
+            db.add(user); db.commit(); db.refresh(user)
 
-        # Generate JWT token
-        jwt_token = jwttoken.create_access_token(data={"sub": str(user.id)})
-
-        # Redirect to Swagger UI with token in URL
-        return RedirectResponse(url=f"/docs?token={jwt_token}")
+        jwt_token = jwttoken.create_access_token({"sub": str(user.id)})
+        return RedirectResponse(f"/docs?token={jwt_token}")
 
     except Exception as e:
         print("❌ Google OAuth callback error:", e)
-        raise HTTPException(status_code=500, detail="OAuth callback failed")
+        raise HTTPException(500, "OAuth callback failed")
