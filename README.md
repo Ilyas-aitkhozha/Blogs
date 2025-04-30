@@ -15,8 +15,8 @@
 
 TicketSystem is a FastAPI‑powered back‑end that delivers a fully featured task‑and‑ticket workflow service.  It offers JWT & Google OAuth authentication, role‑based permissions (User / Admin), real‑time availability flags, and an integrated Gemini chatbot for context‑aware assistance.
 
------- | ------ |
-| **Business‑grade roles & permissions** | Two built‑in profiles (User / Admin) map to most help‑desk, DevOps and HR scenarios. |
+
+| **Business‑grade roles & permissions** | Two built‑in profiles (User / Admin) map to most help‑desk and HR scenarios. |
 | **Industrial JWT security** | Email & Google OAuth sign‑in, refresh tokens, stateless sessions. |
 | **AI Concierge** | Server‑side Gemini chatbot guides users through the API & UI. |
 | **Instant availability** | Users flip an `available` switch; APIs expose who can accept work <kbd>in real time</kbd>. |
@@ -25,7 +25,7 @@ TicketSystem is a FastAPI‑powered back‑end that delivers a fully featured ta
 
 ---
 
-## 🚀 Feature Matrix
+ Feature Matrix
 
 | Category | Endpoints / Capability |
 | -------- | ---------------------- |
@@ -76,20 +76,5 @@ $ open http://localhost:8000/docs
 - Passwords hashed with **bcrypt**
 - CORS locked to front‑end domain in production
 
----
 
-## 🗺️  Roadmap
-
-- [ ] WebSocket live updates for ticket boards
-- [ ] Admin analytics dashboard (FastAPI + Vue 3)
-- [ ] RBAC groups (Team Lead, Auditor)
-
----
-
-## ✉️  Contact
-
-**Bauyrzhan Aitkhozha** — Project Manager & Back‑End Engineer  
-[LinkedIn](https://www.linkedin.com/in/bauyrzhan-a-b8682b256/) • [Email](mailto:your.email@example.com)
-
-> *I build operational tooling that scales from hobby tiers to enterprise SLAs.*
 
