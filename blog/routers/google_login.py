@@ -15,6 +15,7 @@ oauth = OAuth(config)
 
 router = APIRouter(tags=["Google_login"])
 
+# Register Google OAuth with OpenID discovery
 oauth.register(
     name='google',
     client_id=os.getenv("GOOGLE_CLIENT_ID"),
@@ -25,20 +26,26 @@ oauth.register(
 
 @router.get("/auth/google")
 async def login_via_google(request: Request):
-    redirect_uri = "https://ticketsystem-qfj9.onrender.com/auth/google/callback"  # hardcoded for stability
+    # ✅ Use full URL manually to avoid starlette url_for issues
+    redirect_uri = "https://ticketsystem-qfj9.onrender.com/auth/google/callback"
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @router.get("/auth/google/callback")
 async def auth_callback(request: Request, db: Session = Depends(get_db)):
     try:
+        # Get access token from Google
         token = await oauth.google.authorize_access_token(request)
+
+        # Fetch user info
         resp = await oauth.google.get('userinfo', token=token)
         user_info = resp.json()
 
+        # Extract email
         email = user_info.get("email")
         if not email:
             raise HTTPException(status_code=400, detail="Google login failed: no email returned")
 
+        # Create or fetch user in DB
         user = db.query(models.User).filter(models.User.email == email).first()
         if not user:
             user = models.User(email=email, role="user", password="oauth")  # dummy password
@@ -46,7 +53,10 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
             db.commit()
             db.refresh(user)
 
+        # Generate JWT token
         jwt_token = jwttoken.create_access_token(data={"sub": str(user.id)})
+
+        # Redirect to Swagger UI with token in URL
         return RedirectResponse(url=f"/docs?token={jwt_token}")
 
     except Exception as e:
