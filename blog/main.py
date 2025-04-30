@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from . import models
 from .database import engine
-from .routers import ticket, user, login, chat_bot
+from .routers import ticket, user, login, chat_bot, google_login
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -23,3 +23,4 @@ app.include_router(user.router)
 app.include_router(ticket.router)
 app.include_router(login.router)
 app.include_router(chat_bot.router)
+app.include_router(google_login.router)
