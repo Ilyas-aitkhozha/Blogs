@@ -15,13 +15,17 @@
 
 TicketSystem is a FastAPI‑powered back‑end that delivers a fully featured task‑and‑ticket workflow service.  It offers JWT & Google OAuth authentication, role‑based permissions (User / Admin), real‑time availability flags, and an integrated Gemini chatbot for context‑aware assistance.
 
+Business‑grade roles & permissions – two built‑in profiles (User / Admin) that fit most help‑desk and DevOps cases.
 
-| **Business‑grade roles & permissions** | Two built‑in profiles (User / Admin) map to most help‑desk and HR scenarios. |
-| **Industrial JWT security** | Email & Google OAuth sign‑in, refresh tokens, stateless sessions. |
-| **AI Concierge** | Server‑side Gemini chatbot guides users through the API & UI. |
-| **Instant availability** | Users flip an `available` switch; APIs expose who can accept work <kbd>in real time</kbd>. |
-| **Audit‑ready metadata** | Every ticket stores creator, assignee, timestamps & status history. |
-| **Granular workflow** | Admins drive the lifecycle (Open → In Progress → Closed); Users create & assign. |
+JWT + Google OAuth security – email or Google sign‑in, access & refresh tokens, stateless sessions.
+
+AI concierge – server‑side Gemini chatbot that guides users through the API and UI.
+
+Real‑time availability – users toggle an available flag; endpoints immediately show who can accept work.
+
+Audit‑ready metadata – each ticket tracks creator, assignee, timestamps and status history out of the box.
+
+Granular workflow control – admins move tickets Open → In Progress → Closed; users create and assign
 
 ---
 
