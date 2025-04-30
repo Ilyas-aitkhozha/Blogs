@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/Deploy-Render.com-4CAF50?style=for-the-badge"/>
 </p>
 
-<h1 align="center">🎟️ TicketSystem — FastAPI Back‑End</h1>
+<h1 align="center"> TicketSystem — FastAPI Back‑End</h1>
 <p align="center"><em>Production‑ready task engine with real‑time availability, admin workflow control &amp; an AI navigation assistant.</em></p>
 
 ---
@@ -40,7 +40,7 @@ Detailed workflow management - administrators move tickets Open → In Progress 
 | **Auth** | `POST /auth/signup` • `POST /auth/login` (JWT) • Google OAuth callback |
 | **Docs** | Auto-generated Swagger `/docs` |
 
-## 🏗️ Tech Stack
+##  Tech Stack
 
 - **Python 3.12 · FastAPI**
 - **SQLAlchemy + PostgreSQL**
@@ -50,7 +50,7 @@ Detailed workflow management - administrators move tickets Open → In Progress 
 
 ---
 
-## 🧩  Quick‑Start (Local)
+##  Quick‑Start (Local)
 
 ```bash
 # clone & enter
@@ -72,7 +72,7 @@ $ open http://localhost:8000/docs
 
 ---
 
-## 🔒  Security Highlights
+##  Security Highlights
 
 - HTTP‑only secure cookies & `Authorization: Bearer` headers
 - Passwords hashed with **bcrypt**
