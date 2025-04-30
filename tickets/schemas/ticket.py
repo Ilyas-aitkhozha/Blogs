@@ -3,7 +3,7 @@ from pydantic import ConfigDict
 from typing import Optional
 from enum import Enum
 from datetime import datetime
-from blog.schemas import user
+from tickets.schemas import user
 
 class TicketStatus(str, Enum):
     open = "open"

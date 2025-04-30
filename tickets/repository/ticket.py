@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
-from blog import models
-from blog.schemas.ticket import TicketCreate, TicketUpdate, TicketOut
+from tickets import models
+from tickets.schemas.ticket import TicketCreate, TicketUpdate, TicketOut
 from fastapi import HTTPException
 
 

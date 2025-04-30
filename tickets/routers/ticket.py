@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from blog.schemas import ticket as ticket_schema
-from blog.database import get_db
-from blog.repository import ticket as ticket_repository
+from tickets.schemas import ticket as ticket_schema
+from tickets.database import get_db
+from tickets.repository import ticket as ticket_repository
 # fix this import typo if needed:
-from blog.oaut2 import get_current_user
-from blog import models
+from tickets.oaut2 import get_current_user
+from tickets import models
 
 router = APIRouter(
     prefix="/tickets",

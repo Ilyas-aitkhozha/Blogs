@@ -4,26 +4,26 @@ from typing import Optional
 from pydantic import BaseModel
 app = FastAPI()
 
-@app.get("/blog")
+@app.get("tickets")
 def index(limit = 10, published: bool = True):
     if published:
         return {"data": f"{limit} published blogs from the db"}
     else:
         return {"data": f"{limit} blogs from the db"}
 
-@app.get("/blog/unpublished")
+@app.get("tickets/unpublished")
 def unpublished():
     return {"data": "all of the unpublished"}
 
-@app.get("/blog/{blog_id}/{name}")
+@app.get("tickets/{blog_id}/{name}")
 def blog_name(blog_id: int, name: str):
     return {"data": blog_id, "name": name}
 
-@app.get("/blog/{blog_id}")
+@app.get("tickets/{blog_id}")
 def show(blog_id: int):
     return {"data": blog_id}
 
-@app.get("/blog/comments")
+@app.get("tickets/comments")
 def comments(blog_id:int, limit = 10):
     return {"data": blog_id, "limit": limit}
 class Blog(BaseModel):
@@ -31,9 +31,9 @@ class Blog(BaseModel):
     body: str
     published_at: Optional[bool]
 
-@app.post("/blog")
+@app.post("tickets")
 def create_blog(request:Blog):
-    return {"data": f"blog is created with title {request.title}"}
+    return {"data": f"tickets is created with title {request.title}"}
 
 
 

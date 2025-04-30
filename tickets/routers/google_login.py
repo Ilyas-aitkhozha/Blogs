@@ -4,8 +4,8 @@ from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
-from blog import models, jwttoken
-from blog.database import get_db
+from tickets import models, jwttoken
+from tickets.database import get_db
 import os
 
 load_dotenv()

@@ -2,8 +2,8 @@ import os
 from dotenv import load_dotenv
 import google.generativeai as genai
 from google.generativeai import GenerativeModel
-from blog.repository.ai_memory import get_history, save_message
-from blog.repository.user import get_available_users_by_role
+from tickets.repository.ai_memory import get_history, save_message
+from tickets.repository.user import get_available_users_by_role
 
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))

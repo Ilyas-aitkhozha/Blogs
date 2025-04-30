@@ -2,10 +2,10 @@ import uuid
 from fastapi import Depends, APIRouter, Header
 from sqlalchemy.orm import Session
 from ..database import get_db
-from blog.schemas.chat import ChatRequest, ChatResponse
-from blog import models
-from blog.oaut2 import get_current_user
-from blog.repository import ai_memory, ai_service
+from tickets.schemas.chat import ChatRequest, ChatResponse
+from tickets import models
+from tickets.oaut2 import get_current_user
+from tickets.repository import ai_memory, ai_service
 
 router = APIRouter(
     prefix="/chat",

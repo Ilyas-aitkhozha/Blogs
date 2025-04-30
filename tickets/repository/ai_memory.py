@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from blog.models import SessionRecord, ChatMessage
+from tickets.models import SessionRecord, ChatMessage
 
 def create_session(db: Session, session_id: str, user_id: int):
     new = SessionRecord(id=session_id, user_id=user_id)
