@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from pydantic import EmailStr
-from blog import models
-from blog.hashing import Hash
-from blog.schemas.user import UserCreate
+from tickets import models
+from tickets.hashing import Hash
+from tickets.schemas.user import UserCreate
 
 def create_user(db: Session, user: UserCreate):
     new_user = models.User(
