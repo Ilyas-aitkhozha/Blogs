@@ -20,7 +20,7 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 def analyze_tasks(db, session_id:str,user_input:str,user_id):
     history = get_history(db, session_id, user_id)
     messages = [
-        {"role":"system", "parts": [TASK_ANALYSIS_PROMPT] }
+        {"role":"user", "parts": [TASK_ANALYSIS_PROMPT] }
     ]
     for msg in history:
         role = "assistant" if msg.role == "assistant" else "user"
