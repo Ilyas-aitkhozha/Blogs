@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from tickets.schemas import ticket as ticket_schema
 from tickets.database import get_db
 from tickets.repository import ticket as ticket_repository
-# fix this import typo if needed:
 from tickets.oaut2 import get_current_user
 from tickets import models
 
