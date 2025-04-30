@@ -1,12 +1,12 @@
-from starlette.middleware.sessions import SessionMiddleware
-from fastapi import FastAPI
-from . import models
 import os
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
+from starlette.middleware.sessions import SessionMiddleware
+from fastapi.middleware.cors import CORSMiddleware
+from . import models
 from .database import engine
 from .routers import ticket, user, login, chat_bot, google_login
-from contextlib import asynccontextmanager
-from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -15,15 +15,13 @@ async def lifespan(_: FastAPI):
     models.Base.metadata.create_all(bind=engine)
     yield
 app = FastAPI(lifespan=lifespan)
-
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv("SESSION_SECRET_KEY", "super-secret-session")  # fallback if not set
+    secret_key=os.getenv("SESSION_SECRET_KEY", "super-secret-session")
 )
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
