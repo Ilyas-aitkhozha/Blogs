@@ -26,22 +26,38 @@ def chat(
         ai_memory.create_session(db, session_id, user_id=current_user.id)
     user_msg = req.message.strip()
     if user_msg.lower().startswith("create ticket:"):
-        print("[chat DEBUG] 🎯 matched create-ticket intent")
         _, body = user_msg.split(":", 1)
-        parts = body.strip().split("\n", 1)
-        title = parts[0].strip()
-        description = parts[1].strip() if len(parts) > 1 else title
+        lines = [l.strip() for l in body.strip().split("\n") if l.strip()]
 
-        new_ticket = ticket_repository.create_ticket(
-            db,
-            ticket_schema.TicketCreate(title=title, description=description),
-            current_user.id,
+        title = lines[0]
+        description_parts = []
+        assignee_name = None
+
+        for line in lines[1:]:
+            low = line.lower()
+            if low.startswith("assign to:"):
+                assignee_name = line.split(":", 1)[1].strip()
+            else:
+                description_parts.append(line)
+        description = "\n".join(description_parts) if description_parts else title
+
+        ticket_in = ticket_schema.TicketCreate(
+            title=title,
+            description=description,
+            assigned_to_name=assignee_name
         )
+        new_ticket = ticket_repository.create_ticket(db, ticket_in, current_user.id)
+        reply = f"Ticket #{new_ticket.id} created: {new_ticket.title}"
+        if assignee_name:
+            reply += f" (assigned to {assignee_name})"
+        else:
+            reply += " (currently unassigned)"
 
         return ChatResponse(
-            reply=f"✅ Ticket #{new_ticket.id} created: {new_ticket.title}",
+            reply=reply,
             session_id=session_id,
             ticket=new_ticket
         )
-    reply = ai_service.generate_reply(db, session_id, req.message, user_id = current_user.id)
+
+    reply = ai_service.generate_reply(db, session_id, user_msg, user_id=current_user.id)
     return ChatResponse(reply=reply, session_id=session_id)
