@@ -29,20 +29,25 @@ async def login_via_google(request: Request):
 
 @router.get("/auth/google/callback")
 async def auth_callback(request: Request, db: Session = Depends(get_db)):
-    token = await oauth.google.authorize_access_token(request)
-    user_info = await oauth.google.parse_id_token(request, token)
-    email = user_info.get("email")
+    try:
+        token = await oauth.google.authorize_access_token(request)
+        resp = await oauth.google.get('userinfo', token=token)
+        user_info = resp.json()
 
-    if not email:
-        raise HTTPException(status_code=400, detail="Google login failed")
+        email = user_info.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="Google login failed: no email returned")
 
-    # check if user exists
-    user = db.query(models.User).filter(models.User.email == email).first()
-    if not user:
-        user = models.User(email=email, role="user", password="oauth")  # Fake password
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        user = db.query(models.User).filter(models.User.email == email).first()
+        if not user:
+            user = models.User(email=email, role="user", password="oauth")  # Dummy password
+            db.add(user)
+            db.commit()
+            db.refresh(user)
 
-    jwt_token = jwttoken.create_access_token(data={"sub": str(user.id)})
-    return RedirectResponse(url=f"/docs?token={jwt_token}")
+        jwt_token = jwttoken.create_access_token(data={"sub": str(user.id)})
+        return RedirectResponse(url=f"/docs?token={jwt_token}")
+
+    except Exception as e:
+        print("❌ Google OAuth callback error:", e)
+        raise HTTPException(status_code=500, detail="OAuth callback failed")
