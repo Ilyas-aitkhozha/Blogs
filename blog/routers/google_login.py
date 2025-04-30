@@ -27,7 +27,7 @@ async def login_via_google(request: Request):
     redirect_uri = request.url_for("auth_callback", _external = True)
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
-@router.get("/auth/google/callback")
+@router.get("/auth/google/callback", name ="auth_callback")
 async def auth_callback(request: Request, db: Session = Depends(get_db)):
     try:
         token = await oauth.google.authorize_access_token(request)
