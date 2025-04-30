@@ -21,7 +21,7 @@ app.add_middleware(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://ticketsystem-c2sy.onrender.com","http://localhost:5173"],
+    allow_origins=[os.getenv("FRONTEND_URL"),os.getenv("FRONTEND_LOCAL_URL")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
