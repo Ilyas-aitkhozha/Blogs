@@ -5,7 +5,7 @@ from tickets import models
 from tickets.hashing import Hash
 from tickets.schemas.user import UserCreate
 from sqlalchemy import func
-from tickets.models import UserRole, TicketStatus
+from tickets.models import User, Ticket, UserRole, TicketStatus
 
 def create_user(db: Session, user: UserCreate):
     new_user = models.User(
@@ -41,35 +41,30 @@ def count_open_tickets_by_user(db, user_id: int):
         if not user:
             raise HTTPException(status_code=404, detail=f"User with id {user_id} not found")
 
-def get_least_loaded_admin(db: Session):
-    counts_subq = (
+def get_least_loaded_admins(db: Session, limit: int=2)->list[User]:
+    subq = (
         db.query(
-            models.Ticket.assigned_to.label("admin_id"),
-            func.count(models.Ticket.id).label("open_count")
+            Ticket.assigned_to.label("admin_id"),
+            func.count(Ticket.id).label("open_count")
         )
-        .join(models.User, models.User.id == models.Ticket.assigned_to)
         .filter(
-            models.User.role == UserRole.admin,
-            models.User.is_available == True,
-            models.Ticket.status == TicketStatus.open
+            Ticket.status == TicketStatus.open
         )
-        .group_by(models.Ticket.assigned_to)
+        .group_by(Ticket.assigned_to)
         .subquery()
     )
-    result = (
+    results = (
         db.query(
-            models.User,
-            func.coalesce(counts_subq.c.open_count, 0).label("open_count")
+            User,
+            func.coalesce(subq.c.open_count, 0).label("open_count")
         )
-        .outerjoin(counts_subq, models.User.id == counts_subq.c.admin_id)
+        .outerjoin(subq, User.id == subq.c.admin_id)
         .filter(
-            models.User.role == UserRole.admin,
-            models.User.is_available == True
+            User.role == UserRole.admin,
+            User.is_available == True
         )
         .order_by("open_count")
-        .first()
+        .limit(limit)
+        .all()
     )
-    if result:
-        user, open_count = result
-        return user
-    return None
+    return [user for user, count in results]
