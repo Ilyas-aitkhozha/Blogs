@@ -1,18 +1,20 @@
-from fastapi import Request, HTTPException
+from fastapi import Request, HTTPException, APIRouter, Depends
 from starlette.responses import RedirectResponse
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
-from dotenv import load_dotenv
-import os
-from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from dotenv import load_dotenv
 from blog import models, jwttoken
 from blog.database import get_db
+import os
+
 load_dotenv()
 
 config = Config(".env")
 oauth = OAuth(config)
+
 router = APIRouter(tags=["Google_login"])
+
 oauth.register(
     name='google',
     client_id=os.getenv("GOOGLE_CLIENT_ID"),
@@ -21,13 +23,12 @@ oauth.register(
     client_kwargs={'scope': 'openid email profile'}
 )
 
-
 @router.get("/auth/google")
 async def login_via_google(request: Request):
-    redirect_uri = request.url_for("auth_callback", _external = True)
+    redirect_uri = "https://ticketsystem-qfj9.onrender.com/auth/google/callback"  # hardcoded for stability
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
-@router.get("/auth/google/callback", name ="auth_callback")
+@router.get("/auth/google/callback")
 async def auth_callback(request: Request, db: Session = Depends(get_db)):
     try:
         token = await oauth.google.authorize_access_token(request)
@@ -40,7 +41,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
 
         user = db.query(models.User).filter(models.User.email == email).first()
         if not user:
-            user = models.User(email=email, role="user", password="oauth")  # Dummy password
+            user = models.User(email=email, role="user", password="oauth")  # dummy password
             db.add(user)
             db.commit()
             db.refresh(user)
