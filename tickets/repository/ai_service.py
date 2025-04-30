@@ -28,8 +28,15 @@ def analyze_tasks(db, session_id:str,user_input:str,user_id):
     messages.append({"role": "user", "parts": [user_input]})
     model = GenerativeModel("gemini-1.5-flash")
     response = model.generate_content(messages).text
+    start = response.find("{")
+    end = response.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        print(repr(response[start:end]))
+        json_str = response[start: end + 1]
+    else:
+        json_str = response
     try:
-        return json.loads(response)
+        return json.loads(json_str)
     except json.decoder.JSONDecodeError:
         raise ValueError("Could not decode response")
 
