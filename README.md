@@ -29,15 +29,16 @@ Granular workflow control – admins move tickets Open → In Progress �
 
 ---
 
-Feature Matrix
-Category 🚀	Key Endpoints / Behaviour
-Tickets	POST /tickets — create • GET /tickets/{id} — read • PATCH /tickets/{id} — update
-Status Flow	Admin-only: open ➜ in_progress ➜ closed
-Availability	GET /available/users • GET /available/admins — see who can take new work
-Gemini Chat	POST /chat/ask — context-aware AI help inside the UI & API
-Auth	POST /auth/signup • POST /auth/login (JWT) • Google OAuth callback
-Docs	Auto-generated Swagger /docs
----
+### Feature Matrix
+
+| Category | Key Endpoints / Behaviour |
+|----------|---------------------------|
+| **Tickets** | `POST /tickets` – create • `GET /tickets/{id}` – read • `PATCH /tickets/{id}` – update |
+| **Status Flow** | Admin-only: `open` ➜ `in_progress` ➜ `closed` |
+| **Availability** | `GET /available/users` • `GET /available/admins` — show who can take new work |
+| **Gemini Chat** | `POST /chat/ask` — context-aware AI help inside the UI & API |
+| **Auth** | `POST /auth/signup` • `POST /auth/login` (JWT) • Google OAuth callback |
+| **Docs** | Auto-generated Swagger `/docs` |
 
 ## 🏗️ Tech Stack
 
