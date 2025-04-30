@@ -4,15 +4,18 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from tickets.schemas.chat import ChatRequest, ChatResponse
 from tickets import models
+from tickets.repository.ai_service import analyze_tasks
 from tickets.oaut2 import get_current_user
 from tickets.repository import ai_memory, ai_service, ticket as ticket_repository
 from tickets.schemas import ticket as ticket_schema
+from tickets.repository.user import get_least_loaded_admin
 
 
 router = APIRouter(
     prefix="/chat",
     tags=["chat"],
 )
+TASK_PREFIX = "help with creating ticket"
 
 @router.post("/", response_model=ChatResponse)
 def chat(
@@ -25,21 +28,16 @@ def chat(
         session_id = str(uuid.uuid4())
         ai_memory.create_session(db, session_id, user_id=current_user.id)
     user_msg = req.message.strip()
-    if user_msg.lower().startswith("create ticket:"):
-        _, body = user_msg.split(":", 1)
-        lines = [l.strip() for l in body.strip().split("\n") if l.strip()]
-
-        title = lines[0]
-        description_parts = []
-        assignee_name = None
-
-        for line in lines[1:]:
-            low = line.lower()
-            if low.startswith("assign to:"):
-                assignee_name = line.split(":", 1)[1].strip()
-            else:
-                description_parts.append(line)
-        description = "\n".join(description_parts) if description_parts else title
+    if user_msg.lower().startswith(TASK_PREFIX):
+        body = user_msg[len(TASK_PREFIX):].strip()
+        result = analyze_tasks(db, session_id, body, current_user.id)
+        title = result.get("title", body[:50])
+        description = result.get("description", body)
+        candidates = result.get("candidate_roles", [])
+        assignee_name = candidates[0] if candidates else None
+        if not assignee_name:
+            least = get_least_loaded_admin(db)
+            assignee_name = least.name if least else None
 
         ticket_in = ticket_schema.TicketCreate(
             title=title,
@@ -58,6 +56,5 @@ def chat(
             session_id=session_id,
             ticket=new_ticket
         )
-
     reply = ai_service.generate_reply(db, session_id, user_msg, user_id=current_user.id)
     return ChatResponse(reply=reply, session_id=session_id)
