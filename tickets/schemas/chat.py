@@ -1,7 +1,7 @@
-# schemas/chat.py
-
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
+from tickets.schemas.ticket import TicketOut
 
 class ChatRequest(BaseModel):
     message: str
@@ -9,6 +9,10 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
     session_id: str
+    ticket: Optional[TicketOut] = None
+
+    class Config:
+        from_attributes = True
 
 class ChatMessageOut(BaseModel):
     id: int
