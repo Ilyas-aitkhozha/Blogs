@@ -15,7 +15,6 @@ oauth = OAuth(config)
 
 router = APIRouter(tags=["Google_login"])
 
-# Register Google OAuth with OpenID discovery
 oauth.register(
     name='google',
     client_id=os.getenv("GOOGLE_CLIENT_ID"),
@@ -60,7 +59,15 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
             db.refresh(user)
 
         jwt_token = jwttoken.create_access_token(data={"sub": str(user.id)})
-        return RedirectResponse(url=f"/docs?token={jwt_token}")
+        response = RedirectResponse(url="/docs")
+        response.set_cookie(
+            key="access_token",
+            value=jwt_token,
+            httponly=True,
+            max_age=3600,
+            samesite="lax",
+        )
+        return response
 
     except Exception as e:
         print("❌ Google OAuth callback error:", e)
