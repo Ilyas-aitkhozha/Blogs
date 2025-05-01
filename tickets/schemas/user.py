@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 from typing import List
 from typing_extensions import Annotated
 from enum import Enum
@@ -14,7 +14,6 @@ class UserRole(str, Enum):
 
 class UserBase(BaseModel):
     name: str
-    email: EmailStr
 
 class UserCreate(UserBase):
     password: str
