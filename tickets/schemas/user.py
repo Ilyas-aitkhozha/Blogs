@@ -22,6 +22,7 @@ class ShowUser(UserBase):
     id: int
     role: UserRole
     is_available: bool
+    teams: list[int]
 
     class Config:
         from_attributes = True
