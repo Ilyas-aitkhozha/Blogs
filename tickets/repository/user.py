@@ -7,16 +7,6 @@ from tickets.schemas.user import UserCreate
 from sqlalchemy import func
 from tickets.models import User, Ticket, UserRole, TicketStatus
 
-def create_user(db: Session, user: UserCreate):
-    new_user = models.User(
-        name=user.name,
-        email=str(user.email),
-        password=Hash.bcrypt(user.password)
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
 
 def get_user_by_id(db: Session, user_id: int):
     user = db.query(models.User).filter(models.User.id == user_id).first()
