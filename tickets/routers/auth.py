@@ -28,9 +28,20 @@ oauth.register(
 
 FRONTEND = os.getenv("FRONTEND_URL")  # куда редиректим после успеха
 
+@router.get("/", tags = ["Auth"])
+def get_auth_options():
+    #(for frontend)
+    return {
+        "available_methods": {
+            "login_via_site": "/auth/login_in_site",
+            "login_via_google": "/auth/google"
+        }
+    }
+
+
 # — обычный логин
-@router.post("/login", response_model=Token)
-def login(
+@router.post("/login_in_site", response_model=Token)
+def login_or_register_via_site(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
