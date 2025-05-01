@@ -1,30 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlalchemy.orm import Session
-from tickets.schemas import ticket as ticket_schema
 from tickets.database import get_db
-from tickets.repository import ticket as ticket_repo
 from tickets.oaut2 import get_current_user
+from tickets.schemas.ticket import TicketCreate, TicketUpdate, TicketOut
+from tickets.repository import ticket as ticket_repo
 from tickets import models
 
 router = APIRouter(
-    prefix="/tickets",
-    tags=["Tickets"]
+    prefix="/teams/{team_id}",
+    tags=["Team Tickets"],
 )
 
-def _ensure_membership(db: Session, user: models.User, team_id: int) -> None:
-    """
-    Проверяем, что пользователь состоит в указанной команде.
-    Для схемы many-to-many используем user.teams; для one-to-many — user.team_id.
-    """
-    if hasattr(user, "teams"):  # many-to-many
-        if not any(t.id == team_id for t in user.teams):
-            raise HTTPException(status_code=403, detail="Нет доступа к этой команде.")
-    else:                       # one-to-many
-        if user.team_id != team_id:
-            raise HTTPException(status_code=403, detail="Нет доступа к этой команде.")
+
+def _ensure_membership(user: models.User, team_id: int) -> None:
+    if not any(t.id == team_id for t in user.teams):
+        raise HTTPException(status_code=403, detail="Нет доступа к этой команде.")
 
 
-# ───────────────────────── endpoints ─────────────────────────
 @router.post("/tickets", response_model=TicketOut, status_code=status.HTTP_201_CREATED)
 def create_ticket(
     team_id: int = Path(..., ge=1),
@@ -34,11 +27,11 @@ def create_ticket(
 ):
     if current_user.role != "user":
         raise HTTPException(status_code=403, detail="Only ordinary users can create tickets.")
-    _ensure_membership(db, current_user, team_id)
+    _ensure_membership(current_user, team_id)
     return ticket_repo.create_ticket(db, payload, current_user.id, team_id)
 
 
-@router.get("/tickets", response_model=list[TicketOut])
+@router.get("/tickets", response_model=List[TicketOut])
 def list_tickets(
     team_id: int,
     db: Session = Depends(get_db),
@@ -46,7 +39,7 @@ def list_tickets(
 ):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only admins can view all tickets.")
-    _ensure_membership(db, current_user, team_id)
+    _ensure_membership(current_user, team_id)
     return ticket_repo.get_all_tickets(db, team_id)
 
 
@@ -57,27 +50,27 @@ def get_ticket(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_membership(db, current_user, team_id)
+    _ensure_membership(current_user, team_id)
     return ticket_repo.get_ticket_by_id(db, ticket_id, team_id)
 
 
-@router.get("/tickets/my-created", response_model=list[TicketOut])
+@router.get("/tickets/my-created", response_model=List[TicketOut])
 def my_created(
     team_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_membership(db, current_user, team_id)
+    _ensure_membership(current_user, team_id)
     return ticket_repo.get_user_tickets(db, current_user.id, team_id)
 
 
-@router.get("/tickets/my-assigned", response_model=list[TicketOut])
+@router.get("/tickets/my-assigned", response_model=List[TicketOut])
 def my_assigned(
     team_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_membership(db, current_user, team_id)
+    _ensure_membership(current_user, team_id)
     return ticket_repo.get_tickets_assigned_to_user(db, current_user, team_id)
 
 
@@ -89,7 +82,7 @@ def update_ticket(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_membership(db, current_user, team_id)
+    _ensure_membership(current_user, team_id)
     return ticket_repo.update_ticket(db, ticket_id, payload, current_user, team_id)
 
 
@@ -100,6 +93,6 @@ def delete_ticket(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_membership(db, current_user, team_id)
+    _ensure_membership(current_user, team_id)
     ticket_repo.delete_ticket(db, ticket_id, team_id, current_user)
     return
