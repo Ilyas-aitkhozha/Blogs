@@ -7,7 +7,6 @@ from tickets import models
 from tickets.schemas.ticket import TicketCreate, TicketUpdate, TicketOut
 
 
-# ────────────────────────── CREATE ──────────────────────────
 def create_ticket(
     db: Session,
     ticket_in: TicketCreate,
@@ -46,7 +45,6 @@ def create_ticket(
     return _load_ticket_with_users(db, new_ticket.id)
 
 
-# ────────────────────────── READ ──────────────────────────
 def get_ticket_by_id(db: Session, ticket_id: int, team_id: int) -> TicketOut:
     """Вернуть тикет по id в пределах команды."""
     ticket = (
@@ -111,62 +109,50 @@ ALLOWED_STATUS_TRANSITIONS = {
 }
 
 
-def update_ticket(
-    db: Session,
-    ticket_id: int,
-    ticket_upd: TicketUpdate,
-    current_user: models.User,
-    team_id: int,
-) -> TicketOut:
-    ticket = (
-        db.query(models.Ticket)
-        .filter(models.Ticket.id == ticket_id, models.Ticket.team_id == team_id)
-        .first()
-    )
+def update_ticket_status(db: Session, ticket_id: int, update: TicketUpdate, team_id: int) -> TicketOut:
+    ticket = db.query(models.Ticket).filter(
+        models.Ticket.id == ticket_id,
+        models.Ticket.team_id == team_id
+    ).first()
+
     if not ticket:
-        raise HTTPException(status_code=404, detail=f"Ticket {ticket_id} not found")
+        raise HTTPException(status_code=404, detail="Ticket not found")
 
-    # 1. Изменение статуса — только админ, назначенный на тикет
-    if ticket_upd.status is not None:
-        if current_user.role != models.UserRole.admin:
-            raise HTTPException(status_code=403, detail="Only admins can update status.")
-        if ticket.assigned_to != current_user.id:
-            raise HTTPException(status_code=403, detail="You can update only your own tickets.")
-
-        curr = ticket.status.value
-        nxt = ticket_upd.status.value
-        if nxt not in ALLOWED_STATUS_TRANSITIONS[curr]:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Cannot transition from {curr} to {nxt}. Allowed: {ALLOWED_STATUS_TRANSITIONS[curr]}",
-            )
-        ticket.status = ticket_upd.status
-
-    # 2. Переназначение — только автор юзер
-    if ticket_upd.assigned_to is not None:
-        if current_user.role != models.UserRole.user:
-            raise HTTPException(status_code=403, detail="Only users can assign tickets.")
-        if ticket.created_by != current_user.id:
-            raise HTTPException(status_code=403, detail="Only creator can reassign the ticket.")
-
-        new_admin = (
-            db.query(models.User)
-            .filter(
-                models.User.id == ticket_upd.assigned_to,
-                models.User.teams.any(models.Team.id == team_id),
-            )
-            .first()
+    curr = ticket.status.value
+    nxt = update.status.value
+    if nxt not in ALLOWED_STATUS_TRANSITIONS[curr]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot transition from {curr} to {nxt}. Allowed: {ALLOWED_STATUS_TRANSITIONS[curr]}",
         )
-        if not new_admin:
-            raise HTTPException(status_code=404, detail="Assigned user not found in this team")
-        if not new_admin.is_available:
-            raise HTTPException(status_code=400, detail="Assigned user is not available")
 
-        ticket.assigned_to = ticket_upd.assigned_to
-
+    ticket.status = update.status
     db.commit()
     return _load_ticket_with_users(db, ticket.id)
 
+
+def update_ticket_assignee(db: Session, ticket_id: int, update: TicketUpdate, team_id: int) -> TicketOut:
+    ticket = db.query(models.Ticket).filter(
+        models.Ticket.id == ticket_id,
+        models.Ticket.team_id == team_id
+    ).first()
+
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    new_user = db.query(models.User).filter(
+        models.User.id == update.assigned_to,
+        models.User.teams.any(models.Team.id == team_id)
+    ).first()
+
+    if not new_user:
+        raise HTTPException(status_code=404, detail="Assigned user not in this team")
+    if not new_user.is_available:
+        raise HTTPException(status_code=400, detail="Assigned user not available")
+
+    ticket.assigned_to = update.assigned_to
+    db.commit()
+    return _load_ticket_with_users(db, ticket.id)
 
 def delete_ticket(
     db: Session,
