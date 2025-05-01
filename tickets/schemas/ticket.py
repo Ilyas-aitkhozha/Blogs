@@ -26,6 +26,7 @@ class TicketOut(TicketBase):
     status: TicketStatus
     creator: user.ShowUser
     assignee: Optional[user.ShowUser]
+    team_id: int
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
