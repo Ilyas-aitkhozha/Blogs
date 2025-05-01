@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status, Body
 from sqlalchemy.orm import Session
 from tickets.database import get_db
 from tickets.oaut2 import get_current_user
@@ -74,16 +74,28 @@ def my_assigned(
     return ticket_repo.get_tickets_assigned_to_user(db, current_user, team_id)
 
 
-@router.put("/tickets/{ticket_id}", response_model=TicketOut)
-def update_ticket(
-    team_id: int,
-    ticket_id: int,
-    payload: TicketUpdate,
+@router.put("/tickets/{ticket_id}/status", response_model=TicketOut)
+def update_ticket_status(
+    ticket_id: int = Path(..., ge=1),
+    team_id: int = Path(..., ge=1),
+    payload: TicketUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     _ensure_membership(current_user, team_id)
-    return ticket_repo.update_ticket(db, ticket_id, payload, current_user, team_id)
+    return ticket_repo.update_ticket_status(db, ticket_id, payload, team_id)
+
+
+@router.put("/tickets/{ticket_id}/assignee", response_model=TicketOut)
+def update_ticket_assignee(
+    team_id: int = Path(..., ge=1),
+    ticket_id: int = Path(..., ge=1),
+    payload: TicketUpdate = Body(...),  # содержит только `assigned_to`
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    _ensure_membership(current_user, team_id)
+    return ticket_repo.update_ticket_assignee(db, ticket_id, payload, team_id)
 
 
 @router.delete("/tickets/{ticket_id}", status_code=status.HTTP_204_NO_CONTENT)
