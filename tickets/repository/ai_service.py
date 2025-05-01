@@ -13,7 +13,7 @@ Respond ONLY with valid JSON containing:
   - title: a concise one-line summary of the task
   - description: a brief paragraph elaborating on why and what needs doing
   - candidate_roles: a JSON array of usernames or roles best suited, ordered by least current workload
-Do NOT include any extra text outside that JSON.
+Do NOT include any extra text outside that JSON and output strict JSON with closing bracket.
 """
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
@@ -31,7 +31,6 @@ def analyze_tasks(db, session_id:str,user_input:str,user_id):
     start = response.find("{")
     end = response.rfind("}")
     if start != -1 and end != -1 and end > start:
-        print(repr(response[start:end]))
         json_str = response[start: end + 1]
     else:
         json_str = response
