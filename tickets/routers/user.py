@@ -8,9 +8,6 @@ from tickets import models
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-@router.post("/", response_model=user_schema.ShowUser)
-def create_user(request: user_schema.UserCreate, db: Session = Depends(get_db)):
-    return user_repository.create_user(db, request)
 
 @router.get("/", response_model=list[user_schema.ShowUser])
 def get_all_users(db: Session = Depends(get_db)):
