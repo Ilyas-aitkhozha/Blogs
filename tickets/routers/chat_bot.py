@@ -6,13 +6,12 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from tickets.schemas.chat import ChatRequest, ChatResponse
 from tickets import models
-from tickets.repository.ai_service import analyze_tasks
-from tickets.repository.ai_memory import create_session
+from tickets.repository.ai_service import analyze_tasks, report_with_metrics, generate_reply
+from tickets.repository.ai_memory import create_session, save_message
 from tickets.oaut2 import get_current_user
-from tickets.repository import ai_service, ticket as ticket_repository
+from tickets.repository import ticket as ticket_repository
 from tickets.schemas import ticket as ticket_schema
-from tickets.repository.user import get_least_loaded_admins
-
+from tickets.repository.user import  get_least_loaded_admins
 
 router = APIRouter(
     prefix="/chat",
@@ -47,7 +46,6 @@ ASSIGN_RE = re.compile(
     re.IGNORECASE
 )
 
-
 @router.post("/", response_model=ChatResponse)
 def chat(
     req: ChatRequest,
@@ -61,13 +59,14 @@ def chat(
         create_session(db, session_id, current_user.id)
 
     user_msg = req.message.strip()
+    team_id = current_user.teams[0].id  # используем первую команду пользователя
 
     # 1) Создание тикета
     if user_msg.lower().startswith(TASK_PREFIX):
         body = user_msg[len(TASK_PREFIX):].strip()
         lower_body = body.lower()
 
-        # 1.1) Запускаем AI-анализ, чтобы получить title, description и candidate_roles
+        # 1.1) Запускаем AI-анализ задач для генерации заголовка и описания
         result = analyze_tasks(db, session_id, body, current_user.id)
         title = result.get("title", body[:50].strip())
         description = result.get("description", body).strip()
@@ -83,7 +82,7 @@ def chat(
             elif candidates:
                 assignee_name = candidates[0]
             else:
-                admins = get_least_loaded_admins(db, limit=2)
+                admins = get_least_loaded_admins(db=db,team_id=team_id,limit=2)
                 assignee_name = admins[0].name if admins else None
 
         # 1.3) Создаём тикет в БД
@@ -94,7 +93,10 @@ def chat(
                 assigned_to_name=assignee_name
             )
             new_ticket = ticket_repository.create_ticket(
-                db, ticket_in, current_user.id
+                db=db,
+                ticket_in=ticket_in,
+                user_id=current_user.id,
+                team_id=team_id
             )
         except HTTPException:
             raise
@@ -105,14 +107,38 @@ def chat(
         reply = f"🎫 Ticket #{new_ticket.id} created: {new_ticket.title}"
         reply += f" (assigned to {assignee_name})" if assignee_name else " (currently unassigned)"
 
-        return ChatResponse(
-            reply=reply,
-            session_id=session_id,
-            ticket=new_ticket
-        )
+        # Сохраняем и отсылаем сообщение
+        save_message(db, session_id, role="user", content=user_msg)
+        save_message(db, session_id, role="assistant", content=reply)
+        return ChatResponse(reply=reply, session_id=session_id, ticket=new_ticket)
 
-    # 2) fallback — обычное поведение чат-бота
-    reply = ai_service.generate_reply(
-        db, session_id, user_msg, current_user.id
+    # 2) Запрос отчёта по команде
+    if user_msg.lower().startswith("/report"):
+        reply = report_with_metrics(
+            db=db,
+            session_id=session_id,
+            user_input=user_msg,
+            user_id=current_user.id,
+            team_id=team_id
+        )
+        save_message(db, session_id, role="user", content=user_msg)
+        save_message(db, session_id, role="assistant", content=reply)
+        return ChatResponse(reply=reply, session_id=session_id)
+
+    # 3) Запрос диаграммы
+    if any(k in user_msg.lower() for k in ["chart", "diagram", "visual"]):
+        # Отправляем токен генерации диаграммы
+        reply = f"GENERATE_CHART:STATUS_PIE:{team_id}"
+        save_message(db, session_id, role="user", content=user_msg)
+        save_message(db, session_id, role="assistant", content=reply)
+        return ChatResponse(reply=reply, session_id=session_id)
+
+    # 4) Fallback — обычное поведение чат-бота
+    reply = generate_reply(
+        db=db,
+        session_id=session_id,
+        user_input=user_msg,
+        user_id=current_user.id,
+        team_id=team_id
     )
     return ChatResponse(reply=reply, session_id=session_id)

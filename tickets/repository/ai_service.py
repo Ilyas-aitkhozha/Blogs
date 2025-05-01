@@ -2,31 +2,21 @@ import os
 import json
 from dotenv import load_dotenv
 import google.generativeai as genai
+from sqlalchemy.orm import Session
 from google.generativeai import GenerativeModel
 from tickets.repository.ai_memory import get_history, save_message
 from tickets.repository.user import get_available_users_by_role
+from tickets.repository.prompts import METRIC_ANALYZE_PROMPT, TICKET_CREATING_PROMPT,BASE_PROMT
+from tickets.routers.analytics import compute_team_metrics
 
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 
-TASK_ANALYSIS_PROMPT = """
-You are a JSON‐only extractor.
-When given a free‐form task description, output exactly one valid JSON object with three keys:
-
-  • title: a concise one‐line summary  
-  • description: a brief paragraph explaining why and what needs doing  
-  • candidate_roles: an array of usernames or roles best suited, ordered by least current workload  
-
-Do NOT output markdown, code fences, bullet points, apologies, or any extra keys.  
-Emit *only* the raw JSON object.
-"""
-
-
 def analyze_tasks(db, session_id: str, user_input: str, user_id: int):
     history = get_history(db, session_id, user_id)
     messages = [
-        {"role": "user",   "parts": [TASK_ANALYSIS_PROMPT]}
+        {"role": "user",   "parts": [TICKET_CREATING_PROMPT]}
     ]
     for msg in history:
         role = "assistant" if msg.role == "assistant" else "user"
@@ -55,52 +45,50 @@ def generate_reply(
     db,
     session_id: str,
     user_input: str,
-    user_id: int
+    user_id: int,
+    team_id: int,
+    system_prompt: str = BASE_PROMT  # <— новый параметр с дефолтом
 ) -> str:
-    history = get_history(db, session_id, user_id)   # now includes user_id
-    messages = [
-        {"role": "user", "parts": ["""You are an intelligent assistant that helps users and admins navigate the internal ticketing and chat system of a web platform.
-The site has the following key roles and routes:
-Two user roles: 'user' and 'admin'
-Users can:
-Create tickets (with title, description, optional assignee)
-Assign tickets only to available admins
-Use the chatbot to get help and suggestions for who is available
-Admins can:
-View all tickets
-Update status of tickets (open, in_progress, closed)
-Assign tickets to any user or admin
-
-Available routes:
-POST /tickets — create a new ticket
-GET /tickets — view all tickets (admin only)
-PUT /tickets/{id} — update status or assignment
-GET /users/available-admins — get currently available admins
-GET /users/available-users — get currently available users
-POST /chat — chatbot entry point
-
-The chatbot's job is to:
-Guide users/admins through the system
-Suggest available people for ticket assignment
-Help troubleshoot simple usage problems
-Provide brief explanations of what actions users can take based on their role
-Always keep answers short, clear, and friendly. If you recognize a request for help, suggest available admins using /users/available-admins if needed.
-"""]}
-    ]
+    history = get_history(db, session_id, user_id)
+    messages = [{"role": "user", "parts": [system_prompt]}]
     for msg in history:
         role = "assistant" if msg.role == "assistant" else "user"
         messages.append({"role": role, "parts": [msg.content]})
     messages.append({"role": "user", "parts": [user_input]})
+
     model = GenerativeModel("gemini-1.5-flash")
     response = model.generate_content(messages)
     reply = response.text.strip()
+
     if any(kw in user_input.lower() for kw in ["help", "problem", "issue", "debug", "assign", "urgent"]):
-        admins = get_available_users_by_role(db, "admin")
+        admins = get_available_users_by_role(db, "admin",team_id)
         if admins:
             names = ', '.join([admin.name for admin in admins])
             reply += f"\n\nAvailable admins now: {names}. You can assign the ticket to one of them."
         else:
             reply += "\n\nNo admins are currently available."
-    save_message(db, session_id, role="user",      content=user_input)
+
+    save_message(db, session_id, role="user", content=user_input)
     save_message(db, session_id, role="assistant", content=reply)
     return reply
+
+def report_with_metrics(
+    db: Session,
+    session_id: str,
+    user_input: str,
+    user_id: int,
+    team_id: int
+) -> str:
+    metrics = compute_team_metrics(team_id, db)
+    system_prompt = METRIC_ANALYZE_PROMPT.replace(
+        "{{METRICS_JSON}}",
+        json.dumps(metrics, ensure_ascii=False)
+    )
+    return generate_reply(
+        db=db,
+        session_id=session_id,
+        user_input=user_input,
+        user_id=user_id,
+        team_id=team_id,
+        system_prompt=system_prompt
+    )

@@ -2,9 +2,8 @@ from typing import List
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
-
 from tickets import models
-from tickets.schemas.ticket import TicketCreate, TicketUpdate, TicketOut
+from tickets.schemas.ticket import TicketCreate, TicketOut, TicketStatusUpdate, TicketAssigneeUpdate
 
 
 def create_ticket(
@@ -109,7 +108,7 @@ ALLOWED_STATUS_TRANSITIONS = {
 }
 
 
-def update_ticket_status(db: Session, ticket_id: int, update: TicketUpdate, team_id: int) -> TicketOut:
+def update_ticket_status(db: Session, ticket_id: int, update: TicketStatusUpdate, team_id: int) -> TicketOut:
     ticket = db.query(models.Ticket).filter(
         models.Ticket.id == ticket_id,
         models.Ticket.team_id == team_id
@@ -131,7 +130,7 @@ def update_ticket_status(db: Session, ticket_id: int, update: TicketUpdate, team
     return _load_ticket_with_users(db, ticket.id)
 
 
-def update_ticket_assignee(db: Session, ticket_id: int, update: TicketUpdate, team_id: int) -> TicketOut:
+def update_ticket_assignee(db: Session, ticket_id: int, update: TicketAssigneeUpdate, team_id: int) -> TicketOut:
     ticket = db.query(models.Ticket).filter(
         models.Ticket.id == ticket_id,
         models.Ticket.team_id == team_id
