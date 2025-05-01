@@ -6,7 +6,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from . import models
 from .database import engine
-from .routers import team_ticket, user, chat_bot, auth, team
+from .routers import team_ticket, team_user, chat_bot, auth, team
 
 load_dotenv()
 
@@ -26,7 +26,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(user.router)
+app.include_router(team_user.router)
 app.include_router(team_ticket.router)
 app.include_router(chat_bot.router)
 app.include_router(team.router)
