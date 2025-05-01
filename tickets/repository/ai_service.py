@@ -7,37 +7,48 @@ from tickets.repository.ai_memory import get_history, save_message
 from tickets.repository.user import get_available_users_by_role
 
 load_dotenv()
-TASK_ANALYSIS_PROMPT ="""
-You will receive a user’s free-form task description.
-Respond ONLY with valid JSON containing:
-  - title: a concise one-line summary of the task
-  - description: a brief paragraph elaborating on why and what needs doing
-  - candidate_roles: a JSON array of usernames or roles best suited, ordered by least current workload
-Do NOT include any extra text outside that JSON and output strict JSON with closing bracket.
-"""
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-def analyze_tasks(db, session_id:str,user_input:str,user_id):
+
+TASK_ANALYSIS_PROMPT = """
+You are a JSON‐only extractor.
+When given a free‐form task description, output exactly one valid JSON object with three keys:
+
+  • title: a concise one‐line summary  
+  • description: a brief paragraph explaining why and what needs doing  
+  • candidate_roles: an array of usernames or roles best suited, ordered by least current workload  
+
+Do NOT output markdown, code fences, bullet points, apologies, or any extra keys.  
+Emit *only* the raw JSON object.
+"""
+
+
+def analyze_tasks(db, session_id: str, user_input: str, user_id: int):
     history = get_history(db, session_id, user_id)
     messages = [
-        {"role":"user", "parts": [TASK_ANALYSIS_PROMPT] }
+        {"role": "system", "parts": [TASK_ANALYSIS_PROMPT]},
+        {"role": "user",   "parts": [user_input]}
     ]
     for msg in history:
         role = "assistant" if msg.role == "assistant" else "user"
         messages.append({"role": role, "parts": [msg.content]})
-    messages.append({"role": "user", "parts": [user_input]})
     model = GenerativeModel("gemini-1.5-flash")
-    response = model.generate_content(messages).text
-    start = response.find("{")
-    end = response.rfind("}")
-    if start != -1 and end != -1 and end > start:
-        json_str = response[start: end + 1]
-    else:
-        json_str = response
+    raw = model.generate_content(messages).text.strip()
+
+    if raw.startswith("```"):
+        parts = raw.split("```")
+        raw = parts[1] if len(parts) > 1 else raw
+
+    start = raw.find("{")
+    end   = raw.rfind("}")
+    json_str = raw[start:end+1] if (start != -1 and end > start) else raw
+
     try:
         return json.loads(json_str)
-    except json.decoder.JSONDecodeError:
-        raise ValueError("Could not decode response")
+    except json.JSONDecodeError as e:
+        raise ValueError(f"JSON decode error: {e}\nRaw response:\n{raw!r}")
+
+
 
 
 def generate_reply(
