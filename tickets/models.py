@@ -26,7 +26,7 @@ class User(Base):
     is_available = Column(Boolean, default=True)
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, nullable=True)
     password = Column(String, nullable=False)
     role = Column(SqlEnum(UserRole, native_enum=False), default=UserRole.user)
     tickets_created = relationship("Ticket", back_populates="creator", foreign_keys="Ticket.created_by",cascade="all, delete-orphan")
