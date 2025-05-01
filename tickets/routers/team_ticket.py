@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, status, Body
 from sqlalchemy.orm import Session
 from tickets.database import get_db
 from tickets.oaut2 import get_current_user
-from tickets.schemas.ticket import TicketCreate, TicketUpdate, TicketOut
+from tickets.schemas.ticket import TicketCreate, TicketStatusUpdate, TicketAssigneeUpdate, TicketOut
 from tickets.repository import ticket as ticket_repo
 from tickets import models
 
@@ -78,7 +78,7 @@ def my_assigned(
 def update_ticket_status(
     ticket_id: int = Path(..., ge=1),
     team_id: int = Path(..., ge=1),
-    payload: TicketUpdate = Body(...),
+    payload: TicketStatusUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -90,7 +90,7 @@ def update_ticket_status(
 def update_ticket_assignee(
     team_id: int = Path(..., ge=1),
     ticket_id: int = Path(..., ge=1),
-    payload: TicketUpdate = Body(...),  # содержит только `assigned_to`
+    payload: TicketAssigneeUpdate = Body(...),  # содержит только `assigned_to`
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
