@@ -12,3 +12,5 @@ pydantic[email]
 authlib
 httpx
 itsdangerous
+pandas
+matplotlib
