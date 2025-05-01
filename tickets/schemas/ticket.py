@@ -17,9 +17,11 @@ class TicketBase(BaseModel):
 class TicketCreate(TicketBase):
     assigned_to_name: Optional[str] = None
 
-class TicketUpdate(BaseModel):
-    status: Optional[TicketStatus] = None
-    assigned_to: Optional[int] = None
+class TicketStatusUpdate(BaseModel):
+    status: TicketStatus
+
+class TicketAssigneeUpdate(BaseModel):
+    assigned_to: int
 
 class TicketOut(TicketBase):
     id: int
