@@ -34,13 +34,28 @@ def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
-    user = db.query(models.User).filter(models.User.email == form_data.username).first()
-    if not user or not Hash.verify(user.password, form_data.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверные учётные данные",
-            headers={"WWW-Authenticate": "Bearer"},
+    username = form_data.username
+    password = form_data.password
+    user = db.query(models.User).filter(models.User.name == username).first()
+    if not user:
+        new_user = models.User(
+            name=username,
+            email=f"{username}@local",  # dummy email to satisfy DB
+            password=Hash.bcrypt(password),
+            role="user",
+            is_available=True
         )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        user = new_user
+    else:
+        if not Hash.verify(user.password, password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Неверные учётные данные",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
     token = jwttoken.create_access_token(data={"sub": str(user.id)})
     return {"access_token": token, "token_type": "bearer"}
 
