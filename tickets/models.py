@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, Boolean, String, ForeignKey, DateTime, Enum as SqlEnum
 from sqlalchemy.orm import relationship
+import random, string
 from datetime import datetime, timezone
 from .database import Base
 from enum import Enum
@@ -20,6 +21,21 @@ class SessionRecord(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     user = relationship("User", back_populates="sessions")
 
+def _generate_team_code(length: int = 6) -> str:
+    """Генерирует уникальный код-приглашение вида 3K4F9A."""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+
+class Team(Base):
+    __tablename__ = "teams"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    name       = Column(String, nullable=False)
+    code       = Column(String, unique=True, index=True, default=_generate_team_code)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    users      = relationship("User",   back_populates="team", cascade="all, delete-orphan")
+    tickets    = relationship("Ticket", back_populates="team", cascade="all, delete-orphan")
+
 
 class User(Base):
     __tablename__ = 'users'
@@ -32,6 +48,8 @@ class User(Base):
     tickets_created = relationship("Ticket", back_populates="creator", foreign_keys="Ticket.created_by",cascade="all, delete-orphan")
     tickets_assigned = relationship("Ticket", back_populates="assignee", foreign_keys="Ticket.assigned_to")
     sessions = relationship("SessionRecord", back_populates="user",cascade="all, delete-orphan")
+    team_id = Column(Integer, ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
+    team = relationship("Team", back_populates="users")
 
 class Ticket(Base):
     __tablename__ = "tickets"
@@ -43,7 +61,8 @@ class Ticket(Base):
     assigned_to = Column(Integer, ForeignKey("users.id", ondelete = "SET NULL"), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),onupdate=lambda: datetime.now(timezone.utc))
-
+    team_id   = Column(Integer, ForeignKey("teams.id", ondelete="CASCADE"))
+    team      = relationship("Team", back_populates="tickets")
     creator = relationship("User", back_populates="tickets_created", foreign_keys=[created_by])
     assignee = relationship("User", back_populates="tickets_assigned", foreign_keys=[assigned_to])
 
