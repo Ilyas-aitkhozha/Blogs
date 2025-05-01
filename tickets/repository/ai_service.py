@@ -26,12 +26,12 @@ Emit *only* the raw JSON object.
 def analyze_tasks(db, session_id: str, user_input: str, user_id: int):
     history = get_history(db, session_id, user_id)
     messages = [
-        {"role": "system", "parts": [TASK_ANALYSIS_PROMPT]},
-        {"role": "user",   "parts": [user_input]}
+        {"role": "user",   "parts": [TASK_ANALYSIS_PROMPT]}
     ]
     for msg in history:
         role = "assistant" if msg.role == "assistant" else "user"
         messages.append({"role": role, "parts": [msg.content]})
+    messages.append({"role": "user", "parts": [user_input]})
     model = GenerativeModel("gemini-1.5-flash")
     raw = model.generate_content(messages).text.strip()
 
