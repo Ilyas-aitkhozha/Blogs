@@ -8,12 +8,19 @@ from enum import Enum
 #enumki
 class UserRole(str, Enum):
     user = "user"
+    worker = "worker"
     admin = "admin"
 
 class TicketStatus(str, Enum):
     open = "open"
     in_progress = "in_progress"
     closed = "closed"
+
+class TicketPriority(str, Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+
 #helper
 def _generate_team_code(length: int = 6) -> str:
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=length))
@@ -48,10 +55,10 @@ class User(Base):
     password = Column(String, nullable=False)
     role = Column(SqlEnum(UserRole, native_enum=False), default=UserRole.user)
     is_available = Column(Boolean, default=True)
-    user_teams = relationship("UserTeam", back_populates="user", cascade="all, delete-orphan",overlaps="teams")
-    teams = relationship("Team", secondary="user_teams", back_populates="members", overlaps="teams")
-    tickets_created = relationship("Ticket", back_populates="creator",foreign_keys="Ticket.created_by",cascade="all, delete-orphan")
-    tickets_assigned = relationship("Ticket", back_populates="assignee",foreign_keys="Ticket.assigned_to")
+    user_teams = relationship("UserTeam", back_populates="user", cascade="all, delete-orphan", overlaps="teams")
+    teams = relationship("Team", secondary="user_teams", back_populates="members", overlaps="user_teams")
+    tickets_created = relationship("Ticket", back_populates="creator", foreign_keys="Ticket.created_by", cascade="all, delete-orphan")
+    tickets_assigned = relationship("Ticket", back_populates="assignee", foreign_keys="Ticket.assigned_to")
     sessions = relationship("SessionRecord", back_populates="user", cascade="all, delete-orphan")
 
 class Ticket(Base):
@@ -60,10 +67,15 @@ class Ticket(Base):
     title = Column(String, nullable=False)
     description = Column(String, nullable=False)
     status = Column(SqlEnum(TicketStatus, native_enum=False), default=TicketStatus.open)
+    priority = Column(SqlEnum(TicketPriority, native_enum=False), default=TicketPriority.medium)
+    confirmed = Column(Boolean, default=False)
+    feedback = Column(String, nullable=True)
     created_by  = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     team_id     = Column(Integer, ForeignKey("teams.id", ondelete="CASCADE"))
     created_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    accepted_at = Column(DateTime, nullable=True)
+    closed_at   = Column(DateTime, nullable=True)
     updated_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc),
                          onupdate=lambda: datetime.now(timezone.utc))
     creator  = relationship("User", back_populates="tickets_created", foreign_keys=[created_by])
