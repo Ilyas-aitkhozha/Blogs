@@ -3,6 +3,7 @@ from typing import List
 from typing_extensions import Annotated
 from enum import Enum
 from typing import TYPE_CHECKING
+from tickets.schemas.team import TeamOut
 
 if TYPE_CHECKING:
     from tickets.schemas.ticket import TicketOut
@@ -22,7 +23,7 @@ class ShowUser(UserBase):
     id: int
     role: UserRole
     is_available: bool
-    teams: list[int]
+    teams: list[TeamOut]
 
     class Config:
         from_attributes = True
