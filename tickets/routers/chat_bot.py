@@ -37,7 +37,7 @@ def _ensure_session(db: Session, session_id: str, user_id: int) -> str:
         create_session(db, session_id, user_id)
     return session_id
 
-@router.post("/", response_model=ChatResponse)
+@router.post("", response_model=ChatResponse)
 def chat(
     req: ChatRequest,
     db: Session = Depends(get_db),
