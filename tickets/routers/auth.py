@@ -13,6 +13,9 @@ from tickets.oauth2 import get_current_user
 from tickets.jwttoken import ACCESS_TOKEN_EXPIRE_MINUTES
 from fastapi.security import OAuth2PasswordRequestForm
 
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+IS_PRODUCTION = ENVIRONMENT == "production"
+FRONTEND = os.getenv("FRONTEND_URL") if IS_PRODUCTION else os.getenv("FRONTEND_LOCAL_URL")
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 # OAuth setup
@@ -26,7 +29,6 @@ oauth.register(
     client_kwargs={"scope": "openid email profile"},
 )
 
-FRONTEND = os.getenv("FRONTEND_URL")  # e.g. https://ticketsystem-c2sy.onrender.com
 
 @router.get("/", tags=["Auth"])
 def get_auth_options():
@@ -73,11 +75,12 @@ def login_or_register_via_site(
         key="access_token",
         value=token,
         httponly=True,
-        secure=True,                # HTTPS-only in production
-        samesite="none",            # cross-site cookie
-        path="/",                   # <— send on ALL endpoints
+        secure=IS_PRODUCTION,
+        samesite="none" if IS_PRODUCTION else "lax",
+        path="/",
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
+
     return response
 
 @router.get("/me", response_model=ShowUser)
@@ -138,8 +141,8 @@ async def google_callback(
         key="access_token",
         value=jwt_token,
         httponly=True,
-        secure=True,
-        samesite="none",
+        secure=IS_PRODUCTION,
+        samesite="none" if IS_PRODUCTION else "lax",
         path="/",                   # <— send on ALL endpoints
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
