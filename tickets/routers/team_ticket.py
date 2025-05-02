@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Path, status, Body
 from sqlalchemy.orm import Session
 from tickets.database import get_db
-from tickets.oaut2 import get_current_user
+from tickets.oauth2 import get_current_user
 from tickets.schemas.ticket import TicketCreate, TicketStatusUpdate, TicketAssigneeUpdate, TicketOut
 from tickets.repository import ticket as ticket_repo
 from tickets import models
