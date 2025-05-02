@@ -8,7 +8,7 @@ from tickets.schemas.chat import ChatRequest, ChatResponse
 from tickets import models
 from tickets.repository.ai_service import analyze_tasks, report_with_metrics, generate_reply
 from tickets.repository.ai_memory import create_session, save_message
-from tickets.oaut2 import get_current_user
+from tickets.oauth2 import get_current_user
 from tickets.repository import ticket as ticket_repository
 from tickets.schemas import ticket as ticket_schema
 from tickets.repository.user import get_least_loaded_admins
