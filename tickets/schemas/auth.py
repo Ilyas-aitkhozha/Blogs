@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Literal
 
 class Login(BaseModel):
     username: str
@@ -7,7 +7,7 @@ class Login(BaseModel):
 
 class Token(BaseModel):
     access_token: str
-    token_type: str
+    token_type: Literal["bearer"] = "bearer"
 
 class TokenData(BaseModel):
-    email: Optional[str] = None
+    sub: Optional[str] = None
