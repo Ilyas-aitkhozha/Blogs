@@ -8,6 +8,7 @@ from . import models
 from .database import engine
 from tickets.routers.analytics import router as analytics_router
 from .routers import team_ticket, team_user, chat_bot, auth, team
+from .routers.auth import FRONTEND
 
 load_dotenv()
 
@@ -22,7 +23,7 @@ app.add_middleware(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[os.getenv("FRONTEND_URL")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
