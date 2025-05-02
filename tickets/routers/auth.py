@@ -144,6 +144,7 @@ async def google_callback(
         httponly=True,
         secure=True,
         samesite="none",
+        path = "/",
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
     return response
