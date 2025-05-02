@@ -89,8 +89,13 @@ def get_me(current_user: models.User = Depends(get_current_user)):
 
 @router.get("/google")
 async def login_via_google(request: Request):
-    redirect_uri = f"{os.getenv('BACKEND_URL')}/auth/google/callback"
-    return await oauth.google.authorize_redirect(request, redirect_uri)
+    print("login_via_google triggered")
+    redirect_uri = str(request.url_for("google_callback"))
+    try:
+        return await oauth.google.authorize_redirect(request, redirect_uri)
+    except Exception as e:
+        print("OAuth redirect error:", e)
+        raise HTTPException(status_code=500, detail="OAuth redirect failed")
 
 @router.get("/google/callback")
 async def google_callback(
