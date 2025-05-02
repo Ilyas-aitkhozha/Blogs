@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from tickets.schemas import user as user_schema
 from tickets.database import get_db
 from tickets.repository import user as user_repository
-from tickets.oaut2 import get_current_user
+from tickets.oauth2 import get_current_user
 from tickets import models
 from typing import List
 
