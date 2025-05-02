@@ -5,7 +5,7 @@ from tickets.database import get_db
 from tickets import models
 from tickets.schemas.team import TeamCreate, TeamOut, JoinTeam
 from tickets.repository import team as team_repo
-from tickets.oaut2 import get_current_user
+from tickets.oauth2 import get_current_user
 
 router = APIRouter(prefix="/teams", tags=["Teams"])
 
