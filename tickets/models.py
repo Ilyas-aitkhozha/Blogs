@@ -93,6 +93,7 @@ class ChatMessage(Base):
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     session = relationship("SessionRecord")
 
+#do not confuse with authorization, its just for the chat
 class SessionRecord(Base):
     __tablename__ = "sessions"
     id = Column(String, primary_key=True, index=True)
