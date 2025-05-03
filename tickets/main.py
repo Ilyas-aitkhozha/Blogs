@@ -25,7 +25,7 @@ elif FRONTEND_LOCAL_URL:
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(root_path="/api")
+app = FastAPI()
 
 app.add_middleware(
     SessionMiddleware,
