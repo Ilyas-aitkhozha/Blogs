@@ -74,7 +74,7 @@ stop containers:
 
   ```docker-compose down```
 
-> **Prod URL:** <https://tickets-backend.onrender.com>
+> **Prod URL:** <(https://trackzy-gamma.vercel.app/)>
 
 ---
 
