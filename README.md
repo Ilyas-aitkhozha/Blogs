@@ -50,23 +50,29 @@ Detailed workflow management - administrators move tickets Open → In Progress 
 
 ---
 
-##  Quick‑Start (Local)
+## 🚀 Quick Start
 
-```bash
-# clone & enter
-$ git clone https://github.com/Ilyas-aitkhozha/TicketSystem.git
-$ cd TicketSystem
+1. **Clone repository**  
+   ```bash
+   git clone https://github.com/Ilyas-aitkhozha/TicketSystem.git
+   cd TicketSystem
 
-# virtualenv
-$ python -m venv .venv && source .venv/bin/activate
-$ pip install -r requirements.txt
+    Создать файл окружения
+    Скопируйте шаблон и заполните свои значения:
 
-# run dev server
-$ uvicorn tickets.main:app --reload --port 8000
+cp env.example .env
 
-# browse docs
-$ open http://localhost:8000/docs
-```
+Run it via Docker Compose
+
+docker-compose up --build -d
+
+checking how its working 
+
+    Swagger UI: http://localhost:8000/docs
+
+stop containers:
+
+docker-compose down
 
 > **Prod URL:** <https://tickets-backend.onrender.com>
 
