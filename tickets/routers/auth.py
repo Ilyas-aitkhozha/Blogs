@@ -150,7 +150,7 @@ async def google_callback(
         httponly=True,
         secure=IS_PRODUCTION,
         samesite="none" if IS_PRODUCTION else "lax",
-        path="/",                   # <— send on ALL endpoints
+        path="/",
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
     return response
