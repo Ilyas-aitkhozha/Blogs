@@ -1,0 +1,26 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: tsuki
+      POSTGRES_PASSWORD: Toomuch4me
+      POSTGRES_DB: TrackzyDB
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  web:
+    build: .
+    depends_on:
+      - db
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+
+volumes:
+  pgdata:
