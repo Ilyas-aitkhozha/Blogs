@@ -3,7 +3,8 @@ from fastapi.security import OAuth2PasswordBearer
 from . import jwttoken
 from . import models, database
 from sqlalchemy.orm import Session
-
+import logging
+logger = logging.getLogger(__name__)
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login_in_site", auto_error=False)
@@ -14,18 +15,18 @@ credentials_exception = HTTPException(
 )
 
 def get_current_user(request: Request, token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)) -> models.User:
-    print("get_current_user is called")
+    logger.info("get_current_user is called")
     if not token:
-        print("No token in header, trying cookies")
+        logger.warning("No token in header, trying cookies")
         token = request.cookies.get("access_token")
     if not token:
-        print("No token in header or cookies")
+        logger.warning("No token in header or cookies")
         raise credentials_exception
     try:
         user_id = jwttoken.verify_token(token, credentials_exception)
-        print("Token verified, checking user_id in db")
+        logger.info("Token verified, checking user_id in db")
     except Exception as e:
-        print(f"❌ Token verification failed: {e}")
+        logger.error(f"❌ Token verification failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
@@ -34,5 +35,5 @@ def get_current_user(request: Request, token: str = Depends(oauth2_scheme), db: 
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise credentials_exception
-    print("Authentication successful")
+    logger.info("Authentication successful")
     return user
