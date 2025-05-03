@@ -2,6 +2,8 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
+import logging
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 SECRET_KEY = os.getenv("JWT_TOKEN")
@@ -13,6 +15,7 @@ def create_access_token(data: dict):
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    logging.info(f"Создан токен для user_id={data.get('sub')}, timeleft:{expire}")
     return encoded_jwt
 
 def verify_token(token:str, credentials_exception):
@@ -20,7 +23,10 @@ def verify_token(token:str, credentials_exception):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         if user_id is None:
+            logger.warning("Jwt dont have sub")
             raise credentials_exception
+        logger.info(f"Jwt verifified user_id={user_id}")
     except JWTError:
+        logger.warning("Token error, verification error")
         raise credentials_exception
     return int(user_id)
