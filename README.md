@@ -57,10 +57,9 @@ Detailed workflow management - administrators move tickets Open → In Progress 
    git clone https://github.com/Ilyas-aitkhozha/TicketSystem.git
    cd TicketSystem
 
-    Создать файл окружения
-    Скопируйте шаблон и заполните свои значения:
+Copy the environment template and fill in your values:
 
-cp env.example .env
+  ```cp env.example .env```
 
 Run it via Docker Compose
 
