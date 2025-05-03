@@ -33,7 +33,7 @@ app.add_middleware(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://trackzy.onrender.com"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,3 +44,7 @@ app.include_router(chat_bot.router)
 app.include_router(team.router)
 app.include_router(auth.router)
 app.include_router(analytics_router)
+@router.get("/ping")
+def ping():
+    return {"message": "pong"}
+
