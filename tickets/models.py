@@ -43,7 +43,7 @@ class Team(Base):
     code       = Column(String, unique=True, index=True, default=_generate_team_code)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     user_teams = relationship("UserTeam", back_populates="team", cascade="all, delete-orphan")
-    members = relationship("User", secondary="user_teams", back_populates="teams")
+    members = relationship("User", secondary="user_teams", back_populates="teams", overlaps='user_teams')
     tickets = relationship("Ticket", back_populates="team", cascade="all, delete-orphan")
 
 
