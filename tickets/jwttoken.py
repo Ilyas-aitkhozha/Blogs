@@ -20,6 +20,7 @@ def create_access_token(data: dict):
 
 def verify_token(token:str, credentials_exception):
     try:
+        #this is just py dict, here we have subject and exp time
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         if user_id is None:
