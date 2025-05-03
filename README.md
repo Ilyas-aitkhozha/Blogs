@@ -64,7 +64,7 @@ cp env.example .env
 
 Run it via Docker Compose
 
-docker-compose up --build -d
+  ```docker-compose up --build -d```
 
 checking how its working 
 
@@ -72,7 +72,7 @@ checking how its working
 
 stop containers:
 
-docker-compose down
+  ```docker-compose down```
 
 > **Prod URL:** <https://tickets-backend.onrender.com>
 
