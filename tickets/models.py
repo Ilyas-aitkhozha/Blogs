@@ -26,8 +26,8 @@ def _generate_team_code(length: int = 6) -> str:
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
 #db for teams, user,tickets
-
 class UserTeam(Base):
+    #this is  middle table, that helps with relationship many-to-many (user and team)
     __tablename__ = "user_teams"
     user_id   = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     team_id   = Column(Integer, ForeignKey("teams.id", ondelete="CASCADE"), primary_key=True)
@@ -37,7 +37,7 @@ class UserTeam(Base):
 
 class Team(Base):
     __tablename__ = "teams"
-
+    #all the users and tickets are created in side team
     id         = Column(Integer, primary_key=True, index=True)
     name       = Column(String, nullable=False)
     code       = Column(String, unique=True, index=True, default=_generate_team_code)
