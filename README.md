@@ -74,7 +74,8 @@ stop containers:
 
   ```docker-compose down```
 
-> **Prod URL:** <(https://trackzy-gamma.vercel.app/)>
+**Live Frontend:** [Trackzy App on Vercel](https://trackzy-gamma.vercel.app)
+
 
 ---
 
