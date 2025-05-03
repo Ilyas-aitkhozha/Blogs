@@ -5,11 +5,13 @@ from enum import Enum
 from datetime import datetime
 from tickets.schemas import user
 
+#enumki
 class TicketStatus(str, Enum):
     open = "open"
     in_progress = "in_progress"
     closed = "closed"
 
+#base, parent
 class TicketBase(BaseModel):
     title: str
     description: str
