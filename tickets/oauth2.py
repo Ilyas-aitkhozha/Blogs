@@ -5,7 +5,7 @@ from . import models, database
 from sqlalchemy.orm import Session
 
 
-g
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login_in_site", auto_error=False)
 credentials_exception = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
