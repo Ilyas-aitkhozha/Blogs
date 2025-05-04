@@ -7,7 +7,7 @@ from tickets import models
 from tickets.hashing import Hash
 from tickets.schemas.user import UserCreate
 
-
+#--------------------------- GET LOGICS
 def get_user_by_id(db: Session, user_id: int) -> models.User:
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
@@ -19,22 +19,12 @@ def get_user_by_email(db: Session, email: EmailStr) -> Optional[models.User]:
     return db.query(models.User).filter(models.User.email == email).first()
 
 
-def create_user(db: Session, payload: UserCreate) -> models.User:
-    hashed_pwd = Hash.bcrypt(payload.password)
-    user = models.User(name=payload.name, password=hashed_pwd)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
-
-
 def get_users_in_team(db: Session, team_id: int) -> List[models.User]:
     return (
         db.query(models.User)
         .filter(models.User.teams.any(models.Team.id == team_id))
         .all()
     )
-
 
 def get_available_admins_in_team(db: Session, team_id: int) -> List[models.User]:
     return (
@@ -79,14 +69,18 @@ def get_least_loaded_admins(db: Session, team_id: int, limit: int = 5) -> List[m
     )
     return [user for user, _ in results]
 def get_available_users_by_role(db: Session, role: str, team_id: int, limit: int | None = None):
-    """
-    Старая сигнатура: сохраняем, чтобы старые импорты не падали.
-    • role == "admin"  → используем новую функцию get_available_admins_in_team
-    • иначе            → просто список всех пользователей в команде
-    """
-    if role == models.UserRole.admin or role == "admin":
+    if role == models.UserRole.admin or role == "admin":# either enum or just a string
         admins = get_available_admins_in_team(db, team_id)
         return admins[:limit] if limit else admins
     else:
         users = get_users_in_team(db, team_id)
         return users[:limit] if limit else users
+
+#---------------CREATE LOGICS
+def create_user(db: Session, payload: UserCreate) -> models.User:
+    hashed_pwd = Hash.bcrypt(payload.password)
+    user = models.User(name=payload.name, password=hashed_pwd)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user

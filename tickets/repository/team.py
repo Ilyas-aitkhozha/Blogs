@@ -12,7 +12,7 @@ def _raise_not_found() -> None:
         detail="team not found."
     )
 
-
+#---------------------------------CREATE LOGICS
 def create_team(
     db: Session,
     creator: models.User,
@@ -34,6 +34,26 @@ def create_team(
     db.commit()
     db.refresh(team)
     return team
+
+#----------------- GET LOGICS
+def get_team_by_id(
+    db: Session,
+    team_id: int,
+) -> models.Team:
+    team = db.query(models.Team).filter(models.Team.id == team_id).first()
+    if not team:
+        _raise_not_found()
+    return team
+
+
+def get_user_teams(
+    db: Session,
+    user: models.User,
+) -> List[models.Team]:
+    # all teams that user in
+    return user.teams
+
+
 
 
 def join_team(
@@ -71,24 +91,6 @@ def leave_team(
 
     user.teams.remove(team)
     db.commit()
-
-
-def get_team_by_id(
-    db: Session,
-    team_id: int,
-) -> models.Team:
-    team = db.query(models.Team).filter(models.Team.id == team_id).first()
-    if not team:
-        _raise_not_found()
-    return team
-
-
-def get_user_teams(
-    db: Session,
-    user: models.User,
-) -> List[models.Team]:
-    # all teams that user in
-    return user.teams
 
 
 def list_team_members(
