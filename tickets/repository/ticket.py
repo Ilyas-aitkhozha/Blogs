@@ -103,7 +103,13 @@ ALLOWED_STATUS_TRANSITIONS = {
 }
 
 # ------------------------------------------UPDATE LOGIC
-def update_ticket_status(db: Session, ticket_id: int, update: TicketStatusUpdate, team_id: int, current_user: models.User) -> TicketOut:
+def update_ticket_status_by_assignee(
+    db: Session,
+    ticket_id: int,
+    team_id: int,
+    update: TicketStatusUpdate,
+    current_user: models.User
+) -> TicketOut:
     ticket = db.query(models.Ticket).filter(
         models.Ticket.id == ticket_id,
         models.Ticket.team_id == team_id
@@ -112,46 +118,58 @@ def update_ticket_status(db: Session, ticket_id: int, update: TicketStatusUpdate
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
+    if ticket.assigned_to != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the assignee can update the status")
+
     curr = ticket.status.value
     nxt = update.status.value
     if nxt not in ALLOWED_STATUS_TRANSITIONS[curr]:
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot transition from {curr} to {nxt}. Allowed: {ALLOWED_STATUS_TRANSITIONS[curr]}",
+            detail=f"Cannot transition from {curr} to {nxt}. Allowed: {ALLOWED_STATUS_TRANSITIONS[curr]}"
         )
-        # if assigne update status
-    if current_user.id == ticket.assigned_to:
-        ticket.status = update.status
-        if update.status == models.TicketStatus.closed:
-            ticket.closed_at = datetime.now(timezone.utc)
-        # if author gives feedback
-    elif current_user.id == ticket.created_by:
-        if ticket.status != models.TicketStatus.closed:
-            raise HTTPException(
-                status_code=400,
-                detail="You can only confirm or leave feedback after the ticket is closed."
-            )
-        if update.feedback is not None:
-            ticket.feedback = update.feedback
-        if update.confirmed is not None:
-            ticket.confirmed = update.confirmed
-        #others dont have acces
-    else:
-        raise HTTPException(status_code=403,detail="You don't have permission to update this ticket.")
+
+    ticket.status = update.status
+    if update.status == models.TicketStatus.closed:
+        ticket.closed_at = datetime.now(timezone.utc)
 
     ticket.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(ticket)
     return _load_ticket_with_users(db, ticket.id)
 
+def leave_feedback_by_creator(
+    db: Session,
+    ticket_id: int,
+    team_id: int,
+    update: TicketFeedbackUpdate,
+    current_user: models.User
+) -> TicketOut:
+    ticket = db.query(models.Ticket).filter(
+        models.Ticket.id == ticket_id,
+        models.Ticket.team_id == team_id
+    ).first()
 
-def update_ticket_feedback(db: Session, ticket: models.Ticket, payload: TicketFeedbackUpdate) -> models.Ticket:
-    ticket.feedback = payload.feedback
-    ticket.confirmed = payload.confirmed
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    if ticket.created_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the creator can leave feedback")
+
+    if ticket.status != models.TicketStatus.closed:
+        raise HTTPException(status_code=400, detail="You can only leave feedback after the ticket is closed")
+
+    if update.feedback is not None:
+        ticket.feedback = update.feedback
+
+    if update.confirmed is not None:
+        ticket.confirmed = update.confirmed
+
     ticket.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(ticket)
-    return ticket
+    return _load_ticket_with_users(db, ticket.id)
+
 
 def update_ticket_assignee(db: Session, ticket_id: int, update: TicketAssigneeUpdate, team_id: int) -> TicketOut:
     ticket = db.query(models.Ticket).filter(
