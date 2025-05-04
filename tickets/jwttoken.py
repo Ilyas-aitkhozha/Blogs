@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 SECRET_KEY = os.getenv("JWT_TOKEN")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 1
 
 def create_access_token(data: dict):
     to_encode = data.copy()
