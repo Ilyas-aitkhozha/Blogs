@@ -1,9 +1,7 @@
 from typing import List
-from datetime import datetime
+from datetime import datetime,timezone
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import timezone
-
 from tickets import models
 from tickets.schemas.ticket import TicketCreate, TicketOut, TicketStatusUpdate, TicketAssigneeUpdate, TicketFeedbackUpdate
 
