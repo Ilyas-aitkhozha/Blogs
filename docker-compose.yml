@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   db:
-    container_name: Traсkzy-db
+    container_name: trackzy-db
     image: postgres:15
     restart: always
     environment:
