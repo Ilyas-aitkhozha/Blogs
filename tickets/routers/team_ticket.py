@@ -22,7 +22,7 @@ def _ensure_membership(user: models.User, team_id: int) -> None:
 @router.post("/tickets", response_model=TicketOut, status_code=status.HTTP_201_CREATED)
 def create_ticket(
     team_id: int = Path(..., ge=1),
-    payload: TicketCreate = Depends(),
+    payload: TicketCreate = Body(...),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
