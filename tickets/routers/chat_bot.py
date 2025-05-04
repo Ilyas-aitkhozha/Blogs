@@ -1,13 +1,12 @@
 import re
-import uuid
-from fastapi import Depends, APIRouter, Header, HTTPException
+from fastapi import Depends, APIRouter, HTTPException
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from tickets.schemas.chat import ChatRequest, ChatResponse
 from tickets import models
 from tickets.repository.ai_service import analyze_tasks, report_with_metrics, generate_reply
-from tickets.repository.ai_memory import create_session, save_message
+from tickets.repository.ai_memory import get_or_create_session, save_message
 from tickets.oauth2 import get_current_user
 from tickets.repository import ticket as ticket_repository
 from tickets.schemas import ticket as ticket_schema
@@ -31,21 +30,17 @@ ASSIGN_RE = re.compile(
     re.IGNORECASE
 )
 
-def _ensure_session(db: Session, session_id: str, user_id: int) -> str:
-    if session_id is None:
-        session_id = str(uuid.uuid4())
-        create_session(db, session_id, user_id)
-    return session_id
+
 
 @router.post("", response_model=ChatResponse)
 def chat(
     req: ChatRequest,
     db: Session = Depends(get_db),
-    session_id: str = Header(None),
     current_user: models.User = Depends(get_current_user)
 ):
     # Создаём или получаем session_id
-    session_id = _ensure_session(db, session_id, current_user.id)
+    session_record = get_or_create_session(db, current_user.id)
+    session_id = session_record.id
     user_msg = req.message.strip()
     team_id = current_user.teams[0].id
 
@@ -131,10 +126,10 @@ def chat(
 def open_chat(
     req: ChatRequest,
     db: Session = Depends(get_db),
-    session_id: str = Header(None),
     current_user: models.User = Depends(get_current_user)
 ):
-    session_id = _ensure_session(db, session_id, current_user.id)
+    session_record = get_or_create_session(db, current_user.id)
+    session_id = session_record.id
     user_msg = req.message.strip()
     team_id = current_user.teams[0].id
 
@@ -151,11 +146,11 @@ def open_chat(
 
 @router.get("/report", response_model=ChatResponse)
 def get_report(
-    session_id: str = Header(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    session_id = _ensure_session(db, session_id, current_user.id)
+    session_record = get_or_create_session(db, current_user.id)
+    session_id = session_record.id
     team_id = current_user.teams[0].id
     reply = report_with_metrics(
         db=db,
@@ -169,11 +164,11 @@ def get_report(
 
 @router.get("/chart", response_model=ChatResponse)
 def get_chart(
-    session_id: str = Header(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    session_id = _ensure_session(db, session_id, current_user.id)
+    session_record = get_or_create_session(db, current_user.id)
+    session_id = session_record.id
     team_id = current_user.teams[0].id
     reply = f"GENERATE_CHART:STATUS_PIE:{team_id}"
     save_message(db, session_id, role="assistant", content=reply)
@@ -182,11 +177,11 @@ def get_chart(
 @router.post("/create-ticket", response_model=ChatResponse)
 def post_create_ticket(
     ticket_in: ticket_schema.TicketCreate,
-    session_id: str = Header(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    session_id = _ensure_session(db, session_id, current_user.id)
+    session_record = get_or_create_session(db, current_user.id)
+    session_id = session_record.id
     try:
         new_ticket = ticket_repository.create_ticket(
             db=db,
