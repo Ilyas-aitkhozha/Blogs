@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List
+from pydantic import ConfigDict
 from typing_extensions import Annotated
 from enum import Enum
 from typing import TYPE_CHECKING
@@ -33,5 +34,4 @@ class UserWithTickets(ShowUser):
     tickets_created: Annotated[List["TicketOut"], Field(default_factory=list)]
     tickets_assigned: Annotated[List["TicketOut"], Field(default_factory=list)]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
