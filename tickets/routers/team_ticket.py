@@ -80,7 +80,7 @@ def get_priorities():
 
 
 
-@router.put("/teams/{team_id}/tickets/{ticket_id}/status", response_model=TicketOut)
+@router.put("/tickets/{ticket_id}/status", response_model=TicketOut)
 def update_ticket_status_by_assignee(
     team_id: int,
     ticket_id: int,
@@ -90,7 +90,7 @@ def update_ticket_status_by_assignee(
 ):
     return ticket_repo.update_ticket_status_by_assignee(db, ticket_id, team_id, payload, current_user)
 
-@router.put("/teams/{team_id}/tickets/{ticket_id}/feedback", response_model=TicketOut)
+@router.put("/tickets/{ticket_id}/feedback", response_model=TicketOut)
 def leave_feedback_by_creator(
     team_id: int,
     ticket_id: int,
