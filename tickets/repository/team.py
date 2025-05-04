@@ -5,10 +5,11 @@ from sqlalchemy.orm import Session
 from tickets import models
 from tickets.schemas.team import TeamCreate
 
+#helper
 def _raise_not_found() -> None:
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
-        detail="Команда не найдена."
+        detail="team not found."
     )
 
 
@@ -21,11 +22,11 @@ def create_team(
     try:
         db.add(team)
         db.flush()
-    except IntegrityError:
+    except IntegrityError:#rollabackaem if name isnt unique
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Не удалось создать команду (ошибка уникальности)."
+            detail="couldnt create a team (unique error)."
         )
 
     creator.teams.append(team)
@@ -48,7 +49,7 @@ def join_team(
     if not team:
         _raise_not_found()
 
-    if team not in user.teams:          # чтобы не дублировать
+    if team not in user.teams:          # not to duplicate
         user.teams.append(team)
 
     db.commit()
@@ -65,7 +66,7 @@ def leave_team(
     if not team:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Вы не состоите в этой команде."
+            detail="You are not in this team."
         )
 
     user.teams.remove(team)
@@ -86,9 +87,7 @@ def get_user_teams(
     db: Session,
     user: models.User,
 ) -> List[models.Team]:
-    """
-    Все команды, в которых состоит пользователь.
-    """
+    # all teams that user in
     return user.teams
 
 
