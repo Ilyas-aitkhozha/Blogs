@@ -78,32 +78,27 @@ def my_assigned(
 def get_priorities():
     return [p.value for p in TicketPriority]
 
-@router.patch("/tickets/{ticket_id}/feedback", response_model=TicketOut)
-def update_ticket_feedback(
-    ticket_id: int = Path(..., ge=1),
-    team_id: int = Path(..., ge=1),
-    payload: TicketFeedbackUpdate = Body(...),
+
+
+@router.put("/teams/{team_id}/tickets/{ticket_id}/status", response_model=TicketOut)
+def update_ticket_status_by_assignee(
+    team_id: int,
+    ticket_id: int,
+    payload: TicketStatusUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_membership(current_user, team_id)
-    ticket = ticket_repo.get_ticket_by_id(db, ticket_id, team_id)
-    if ticket.created_by != current_user.id:
-        logger.error("User tried to leave feedback on another user ticket")
-        raise HTTPException(status_code=403)
-    return ticket_repo.update_ticket_feedback(db,ticket,payload)
+    return ticket_repo.update_ticket_status_by_assignee(db, ticket_id, team_id, payload, current_user)
 
-
-@router.put("/tickets/{ticket_id}/status", response_model=TicketOut)
-def update_ticket_status(
-    ticket_id: int = Path(..., ge=1),
-    team_id: int = Path(..., ge=1),
-    payload: TicketStatusUpdate = Body(...),
+@router.put("/teams/{team_id}/tickets/{ticket_id}/feedback", response_model=TicketOut)
+def leave_feedback_by_creator(
+    team_id: int,
+    ticket_id: int,
+    payload: TicketFeedbackUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_membership(current_user, team_id)
-    return ticket_repo.update_ticket_status(db, ticket_id, payload, team_id,current_user)
+    return ticket_repo.leave_feedback_by_creator(db, ticket_id, team_id, payload, current_user)
 
 
 @router.put("/tickets/{ticket_id}/assignee", response_model=TicketOut)
