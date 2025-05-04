@@ -13,7 +13,9 @@ def get_or_create_session(db: Session, user_id: int) -> SessionRecord:
         .first()
     )
     if session:
+        logger.info("Getting the existing session")
         return session
+    logger.info("Creating new session")
     new_session_id = str(uuid.uuid4())
     new_session = SessionRecord(id=new_session_id, user_id=user_id)
     db.add(new_session)
@@ -28,11 +30,13 @@ def get_session(db: Session, session_id: str):
 def get_history(db: Session, session_id: str, user_id: int | None = None) -> list[ChatMessage]:
     query = db.query(ChatMessage)
     if user_id is not None:
+        logger.info("get_history checkaem by user_id=%s", user_id)
         query = (
             query.join(SessionRecord, ChatMessage.session_id == SessionRecord.id) #below how i did in pgadmin, just making viborku less
              .filter(SessionRecord.user_id == user_id)#select s.user_id from sessions s join chat_messages c on c.session_id = s.id where s.user_id = 2
         )
     else:
+        logger.info("get_history checkaem by session_id=%s", session_id)
         query = query.filter(ChatMessage.session_id == session_id)
     return query.order_by(ChatMessage.timestamp.asc()).all() # type: ignore
 
