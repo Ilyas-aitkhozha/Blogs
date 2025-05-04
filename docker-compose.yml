@@ -16,7 +16,7 @@ services:
     depends_on:
       - db
     env_file:
-      - .env
+      - docker.env
     ports:
       - "8000:8000"
     volumes:
