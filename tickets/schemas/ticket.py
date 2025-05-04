@@ -28,7 +28,7 @@ class TicketCreate(TicketBase):
 class TicketStatusUpdate(BaseModel):
     status: TicketStatus
     feedback: Optional[str] = None
-    confirmed: bool
+    confirmed: Optional[bool] = False
 
 class TicketFeedbackUpdate(BaseModel):
     feedback: Optional[str] = None
@@ -44,5 +44,7 @@ class TicketOut(TicketBase):
     assignee: Optional[user.ShowUser]
     team_id: int
     created_at: datetime
-
+    priority: TicketPriority
+    confirmed: bool
+    feedback: Optional[str]
     model_config = ConfigDict(from_attributes=True)
