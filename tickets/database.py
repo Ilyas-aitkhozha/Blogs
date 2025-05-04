@@ -4,10 +4,14 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 load_dotenv()
-SQL_ALCHEMY_DATABASE_URL = os.getenv("SQL_ALCHEMY_DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Fail-fast
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is not set in environment variables.")
 
 
-engine = create_engine(SQL_ALCHEMY_DATABASE_URL)
+engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
