@@ -121,9 +121,14 @@ def update_ticket_status(db: Session, ticket_id: int, update: TicketStatusUpdate
             detail=f"Cannot transition from {curr} to {nxt}. Allowed: {ALLOWED_STATUS_TRANSITIONS[curr]}",
         )
 
-    ticket.status = update.status
+    if update.feedback is not None:
+        ticket.feedback = update.feedback
+    ticket.confirmed = update.confirmed
+    ticket.updated_at = datetime.now(timezone.utc)
     db.commit()
+    db.refresh(ticket)
     return _load_ticket_with_users(db, ticket.id)
+
 
 def update_ticket_feedback(db: Session, ticket: models.Ticket, payload: TicketFeedbackUpdate) -> models.Ticket:
     ticket.feedback = payload.feedback
