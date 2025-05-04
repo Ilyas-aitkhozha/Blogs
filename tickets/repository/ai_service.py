@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 from dotenv import load_dotenv
 import google.generativeai as genai
 from sqlalchemy.orm import Session
@@ -8,22 +9,26 @@ from tickets.repository.ai_memory import get_history, save_message
 from tickets.repository.user import get_available_users_by_role
 from tickets.repository.prompts import METRIC_ANALYZE_PROMPT, TICKET_CREATING_PROMPT,BASE_PROMT
 from tickets.routers.analytics import compute_team_metrics
-
+logger = logging.getLogger(__name__)
 load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-
-def analyze_tasks(db, session_id: str, user_input: str, user_id: int):
+#helper
+def messages(db, session_id: str, user_input: str, user_id: int) -> list[dict]:
     history = get_history(db, session_id, user_id)
-    messages = [
-        {"role": "user",   "parts": [TICKET_CREATING_PROMPT]}
-    ]
+    messages = []
     for msg in history:
         role = "assistant" if msg.role == "assistant" else "user"
         messages.append({"role": role, "parts": [msg.content]})
     messages.append({"role": "user", "parts": [user_input]})
+    return messages
+
+
+def analyze_tasks(db, session_id: str, user_input: str, user_id: int):
+    messages_list = messages(db, session_id, user_input, user_id)
+    messages_list.insert(0, {"role": "user", "parts": [TICKET_CREATING_PROMPT]})  # system prompt
     model = GenerativeModel("gemini-1.5-flash")
-    raw = model.generate_content(messages).text.strip()
+    raw = model.generate_content(messages_list).text.strip()
 
     if raw.startswith("```"):
         parts = raw.split("```")
@@ -36,6 +41,7 @@ def analyze_tasks(db, session_id: str, user_input: str, user_id: int):
     try:
         return json.loads(json_str)
     except json.JSONDecodeError as e:
+        logger.error("JSON decode error from Gemini: %s\nRaw: %r", e, raw)
         raise ValueError(f"JSON decode error: {e}\nRaw response:\n{raw!r}")
 
 
@@ -49,16 +55,10 @@ def generate_reply(
     team_id: int,
     system_prompt: str = BASE_PROMT  # <— новый параметр с дефолтом
 ) -> str:
-    history = get_history(db, session_id, user_id)
-    messages = [{"role": "user", "parts": [system_prompt]}]
-    for msg in history:
-        role = "assistant" if msg.role == "assistant" else "user"
-        messages.append({"role": role, "parts": [msg.content]})
-    messages.append({"role": "user", "parts": [user_input]})
-
+    messages_list = messages(db, session_id, user_input, user_id)
+    messages_list.insert(0, {"role": "user", "parts": [system_prompt]})  # вставляем системный промпт
     model = GenerativeModel("gemini-1.5-flash")
-    response = model.generate_content(messages)
-    reply = response.text.strip()
+    reply = model.generate_content(messages_list).text.strip()
 
     if any(kw in user_input.lower() for kw in ["help", "problem", "issue", "debug", "assign", "urgent"]):
         admins = get_available_users_by_role(db, "admin",team_id)
