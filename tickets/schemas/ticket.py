@@ -6,6 +6,11 @@ from datetime import datetime
 from tickets.schemas import user
 
 #enumki
+class TicketPriority(str, Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+
 class TicketStatus(str, Enum):
     open = "open"
     in_progress = "in_progress"
@@ -18,9 +23,16 @@ class TicketBase(BaseModel):
 
 class TicketCreate(TicketBase):
     assigned_to_name: Optional[str] = None
+    priority: Optional[TicketPriority] = TicketPriority.medium
 
 class TicketStatusUpdate(BaseModel):
     status: TicketStatus
+    feedback: Optional[str] = None
+    confirmed: bool
+
+class TicketFeedbackUpdate(BaseModel):
+    feedback: Optional[str] = None
+    confirmed: bool
 
 class TicketAssigneeUpdate(BaseModel):
     assigned_to: int
