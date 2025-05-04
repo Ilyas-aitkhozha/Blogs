@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import timezone
+
 from tickets import models
 from tickets.schemas.ticket import TicketCreate, TicketOut, TicketStatusUpdate, TicketAssigneeUpdate, TicketFeedbackUpdate
 
@@ -104,7 +105,7 @@ ALLOWED_STATUS_TRANSITIONS = {
 }
 
 # ------------------------------------------UPDATE LOGIC
-def update_ticket_status(db: Session, ticket_id: int, update: TicketStatusUpdate, team_id: int) -> TicketOut:
+def update_ticket_status(db: Session, ticket_id: int, update: TicketStatusUpdate, team_id: int, current_user: models.User) -> TicketOut:
     ticket = db.query(models.Ticket).filter(
         models.Ticket.id == ticket_id,
         models.Ticket.team_id == team_id
@@ -121,8 +122,10 @@ def update_ticket_status(db: Session, ticket_id: int, update: TicketStatusUpdate
             detail=f"Cannot transition from {curr} to {nxt}. Allowed: {ALLOWED_STATUS_TRANSITIONS[curr]}",
         )
 
-    if update.feedback is not None:
-        ticket.feedback = update.feedback
+    if update.feedback is not None or update.confirmed is not None:
+        if ticket.created_by != current_user.id:
+            raise HTTPException(status_code=403, detail="Only creator can leave feeadback or confirm.")
+    ticket.feedback = update.feedback
     ticket.confirmed = update.confirmed
     ticket.updated_at = datetime.now(timezone.utc)
     db.commit()
