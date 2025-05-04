@@ -1,12 +1,13 @@
 from typing import List
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Path, status, Body
 from sqlalchemy.orm import Session
 from tickets.database import get_db
 from tickets.oauth2 import get_current_user
-from tickets.schemas.ticket import TicketCreate, TicketStatusUpdate, TicketAssigneeUpdate, TicketOut
+from tickets.schemas.ticket import TicketCreate, TicketStatusUpdate, TicketAssigneeUpdate, TicketOut, TicketFeedbackUpdate, TicketPriority
 from tickets.repository import ticket as ticket_repo
 from tickets import models
-
+logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/teams/{team_id}",
     tags=["Team Tickets"],
@@ -72,6 +73,25 @@ def my_assigned(
 ):
     _ensure_membership(current_user, team_id)
     return ticket_repo.get_tickets_assigned_to_user(db, current_user, team_id)
+
+@router.get("/tickets/priorities", response_model=list[str])
+def get_priorities():
+    return [p.value for p in TicketPriority]
+
+@router.patch("/tickets/{ticket_id}/feedback", response_model=TicketOut)
+def update_ticket_feedback(
+    ticket_id: int = Path(..., ge=1),
+    team_id: int = Path(..., ge=1),
+    payload: TicketFeedbackUpdate = Body(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    _ensure_membership(current_user, team_id)
+    ticket = ticket_repo.get_ticket_by_id(db, ticket_id, team_id)
+    if ticket.created_by != current_user.id:
+        logger.error("User tried to leave feedback on another user ticket")
+        raise HTTPException(status_code=403)
+    return ticket_repo.update_ticket_feedback(db,ticket,payload)
 
 
 @router.put("/tickets/{ticket_id}/status", response_model=TicketOut)
