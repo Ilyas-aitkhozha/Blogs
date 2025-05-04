@@ -70,7 +70,7 @@ def login_or_register_via_site(
     token = jwttoken.create_access_token({"sub": str(user.id)})
 
     # return user + set cookie for all paths
-    response = JSONResponse(content=ShowUser.from_attributes(user).dict())
+    response = JSONResponse(content=ShowUser.model_validate(user).dict())
     response.set_cookie(
         key="access_token",
         value=token,
