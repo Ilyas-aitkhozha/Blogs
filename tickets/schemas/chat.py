@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from pydantic import ConfigDict
 from typing import Optional
 from tickets.schemas.ticket import TicketOut
 
@@ -10,9 +11,8 @@ class ChatResponse(BaseModel):
     reply: str
     session_id: str
     ticket: Optional[TicketOut] = None
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
 
 class ChatMessageOut(BaseModel):
     id: int
@@ -20,6 +20,4 @@ class ChatMessageOut(BaseModel):
     role: str
     content: str
     timestamp: datetime
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
