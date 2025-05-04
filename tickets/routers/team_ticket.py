@@ -103,7 +103,7 @@ def update_ticket_status(
     current_user: models.User = Depends(get_current_user),
 ):
     _ensure_membership(current_user, team_id)
-    return ticket_repo.update_ticket_status(db, ticket_id, payload, team_id)
+    return ticket_repo.update_ticket_status(db, ticket_id, payload, team_id,current_user)
 
 
 @router.put("/tickets/{ticket_id}/assignee", response_model=TicketOut)
