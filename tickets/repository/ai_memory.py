@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from tickets.models import SessionRecord, ChatMessage
-
+#creating session for detailed info about chat_messages
 def create_session(db: Session, session_id: str, user_id: int):
     new = SessionRecord(id=session_id, user_id=user_id)
     db.add(new); db.commit(); db.refresh(new)
@@ -9,7 +9,7 @@ def create_session(db: Session, session_id: str, user_id: int):
 
 def get_session(db: Session, session_id: str):
     return db.query(SessionRecord).filter(SessionRecord.id == session_id).first()
-
+#we are getting history of dialogue, context window in another words
 def get_history(db: Session, session_id: str, user_id: int | None = None) -> list[ChatMessage]:
     query = db.query(ChatMessage)
     if user_id is not None:
