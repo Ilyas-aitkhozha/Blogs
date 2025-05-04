@@ -1,7 +1,7 @@
 import re
-from fastapi import Depends, APIRouter, HTTPException
+from fastapi import Depends, APIRouter, HTTPException, Path
 from sqlalchemy.orm import Session
-
+import logging
 from ..database import get_db
 from tickets.schemas.chat import ChatRequest, ChatResponse
 from tickets import models
@@ -11,12 +11,12 @@ from tickets.oauth2 import get_current_user
 from tickets.repository import ticket as ticket_repository
 from tickets.schemas import ticket as ticket_schema
 from tickets.repository.user import get_least_loaded_admins
-
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 TASK_PREFIX = "help with creating ticket"
 
-# фразы, означающие “не назначать никого”
+# phrases for situation where user dont assing
 NO_ASSIGN_RE = re.compile(
     r"\b("
     r"no\s?one|nobody|none|anyone|no assignment|leave it blank|unassigned|dont assign|don't assign|do not assign"
@@ -24,7 +24,7 @@ NO_ASSIGN_RE = re.compile(
     re.IGNORECASE
 )
 
-# явное “assign to X”, но не “assign to no one/anyone”
+# “assign to X”, but not “assign to no one/anyone”
 ASSIGN_RE = re.compile(
     r"assign to\s+(?!no\s?one|none|nobody|anyone)\s*([A-Za-z0-9_ ]+)",
     re.IGNORECASE
@@ -38,14 +38,14 @@ def chat(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    # Создаём или получаем session_id
     session_record = get_or_create_session(db, current_user.id)
     session_id = session_record.id
     user_msg = req.message.strip()
     team_id = current_user.teams[0].id
 
-    # 1) Создание тикета
+    # creating ticket
     if user_msg.lower().startswith(TASK_PREFIX):
+        logger.info("ai bot creating ticket")
         body = user_msg[len(TASK_PREFIX):].strip()
         lower_body = body.lower()
         result = analyze_tasks(db, session_id, body, current_user.id)
@@ -78,9 +78,24 @@ def chat(
                 team_id=team_id
             )
         except HTTPException:
+            logger.warning(
+                "HTTPException while creating ticket: %s  User: %s  Team: %s  Title: %r",
+                HTTPException,
+                current_user.id,
+                team_id,
+                title
+            )
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error(
+                "Unexpected error while creating ticket  User: %s  Team: %s  Title: %r  Error: %s",
+                current_user.id,
+                team_id,
+                title,
+                str(e),
+                exc_info=True  # vivodit stack trace
+            )
+            raise HTTPException(status_code=500, detail="Internal server error")
 
         reply = f"🎫 Ticket #{new_ticket.id} created: {new_ticket.title}"
         if assignee_name:
@@ -92,8 +107,9 @@ def chat(
         save_message(db, session_id, role="assistant", content=reply)
         return ChatResponse(reply=reply, session_id=session_id, ticket=new_ticket)
 
-    # 2) Текстовый отчёт
+    # text report
     if user_msg.lower().startswith("/report"):
+        logger.info("ai bot reporting ticket")
         reply = report_with_metrics(
             db=db,
             session_id=session_id,
@@ -105,14 +121,15 @@ def chat(
         save_message(db, session_id, role="assistant", content=reply)
         return ChatResponse(reply=reply, session_id=session_id)
 
-    # 3) Запрос диаграммы
+    # graph
     if any(k in user_msg.lower() for k in ["chart", "diagram", "visual"]):
+        logger.info("ai bot reporting ticket visuaalllyy")
         reply = f"GENERATE_CHART:STATUS_PIE:{team_id}"
         save_message(db, session_id, role="user", content=user_msg)
         save_message(db, session_id, role="assistant", content=reply)
         return ChatResponse(reply=reply, session_id=session_id)
 
-    # 4) Обычное общение
+    # basic chat
     reply = generate_reply(
         db=db,
         session_id=session_id,
