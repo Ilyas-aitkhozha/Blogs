@@ -119,12 +119,26 @@ def update_ticket_status(db: Session, ticket_id: int, update: TicketStatusUpdate
             status_code=400,
             detail=f"Cannot transition from {curr} to {nxt}. Allowed: {ALLOWED_STATUS_TRANSITIONS[curr]}",
         )
+        # if assigne update status
+    if current_user.id == ticket.assigned_to:
+        ticket.status = update.status
+        if update.status == models.TicketStatus.closed:
+            ticket.closed_at = datetime.now(timezone.utc)
+        # if author gives feedback
+    elif current_user.id == ticket.created_by:
+        if ticket.status != models.TicketStatus.closed:
+            raise HTTPException(
+                status_code=400,
+                detail="You can only confirm or leave feedback after the ticket is closed."
+            )
+        if update.feedback is not None:
+            ticket.feedback = update.feedback
+        if update.confirmed is not None:
+            ticket.confirmed = update.confirmed
+        #others dont have acces
+    else:
+        raise HTTPException(status_code=403,detail="You don't have permission to update this ticket.")
 
-    if update.feedback is not None or update.confirmed is not None:
-        if ticket.created_by != current_user.id:
-            raise HTTPException(status_code=403, detail="Only creator can leave feeadback or confirm.")
-    ticket.feedback = update.feedback
-    ticket.confirmed = update.confirmed
     ticket.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(ticket)
