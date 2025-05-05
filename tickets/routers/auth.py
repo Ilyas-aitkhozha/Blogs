@@ -5,12 +5,15 @@ from starlette.config import Config
 from sqlalchemy.orm import Session
 import os
 import logging
+from tickets.models import User
 from tickets import models, jwttoken
 from tickets.database import get_db
 from tickets.hashing import Hash
 from tickets.schemas.user import ShowUser
 from tickets.oauth2 import get_current_user
 from tickets.jwttoken import ACCESS_TOKEN_EXPIRE_MINUTES
+from tickets.schemas.team import TeamWithProjects
+from tickets.schemas.project import ProjectMembership
 from fastapi.security import OAuth2PasswordRequestForm
 logger = logging.getLogger(__name__)
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
@@ -53,7 +56,6 @@ def login_or_register_via_site(
             name=username,
             email=f"{username}@local",
             password=Hash.bcrypt(password),
-            role="user",
             is_available=True
         )
         db.add(user)
@@ -83,9 +85,26 @@ def login_or_register_via_site(
 
     return response
 
+def build_user_response(user: User) -> ShowUser:
+    teams_data = []
+    for ut in user.user_teams:
+        #checks projects in particular team
+        projects_data = []
+        for pu in user.project_users:
+            if pu.project.team_id == ut.team_id:
+                projects_data.append(ProjectMembership(project=pu.project,role=pu.role,joined_at=pu.joined_at))
+        teams_data.append(
+            TeamWithProjects(team=ut.team,role=ut.role,joined_at=ut.joined_at,projects=projects_data))
+    return ShowUser(
+        id=user.id,
+        name=user.name,
+        email=user.email,
+        is_available=user.is_available,
+        teams=teams_data
+    )
 @router.get("/me", response_model=ShowUser)
 def get_me(current_user: models.User = Depends(get_current_user)):
-    return current_user
+    return build_user_response(current_user)
 
 @router.get("/google")
 async def login_via_google(request: Request):
@@ -132,7 +151,6 @@ async def google_callback(
         user = models.User(
             name=info.get("name", ""),
             email=email,
-            role="user",
             password="oauth"
         )
         db.add(user)
