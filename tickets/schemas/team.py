@@ -16,6 +16,7 @@ class TeamOut(BaseModel):
 class TeamBriefInfo(BaseModel):
     name:str
     code:str
+    model_config = ConfigDict(from_attributes=True)
 
 class JoinTeam(BaseModel):
     code: str
