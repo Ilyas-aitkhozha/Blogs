@@ -29,7 +29,8 @@ def get_team_members(
           .join(UserTeam, UserTeam.user_id == User.id)
           .filter(
               UserTeam.team_id == team_id,
-              UserTeam.role    == role
+              # раньше было role == role, стало:
+              UserTeam.role    == role.value
           )
           .all()
     )
@@ -40,7 +41,8 @@ def get_available_admins_in_team(db: Session, team_id: int) -> List[models.User]
           .join(UserTeam, UserTeam.user_id == User.id)
           .filter(
               UserTeam.team_id == team_id,
-              UserTeam.role    == TeamRole.admin,
+              # исправлено:
+              UserTeam.role    == TeamRole.admin.value,
               models.User.is_available.is_(True)
           )
           .all()
@@ -69,7 +71,8 @@ def get_least_loaded_admins(db: Session, team_id: int, limit: int = 5) -> List[m
         .join(UserTeam, UserTeam.user_id == models.User.id)
         .filter(
             UserTeam.team_id == team_id,
-            UserTeam.role    == TeamRole.admin,
+            # и здесь:
+            UserTeam.role    == TeamRole.admin.value,
             models.User.is_available.is_(True),
         )
         .order_by("open_count")
