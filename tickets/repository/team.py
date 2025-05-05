@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from tickets import models
 from tickets.schemas.team import TeamCreate
+from tickets.schemas.team import TeamBriefInfo
 
 #helper
 def _raise_not_found() -> None:
@@ -46,12 +47,14 @@ def get_team_by_id(
     return team
 
 
+
 def get_user_teams(
     db: Session,
     user: models.User,
-) -> List[models.Team]:
-    # all teams that user in
-    return user.teams
+) -> List[TeamBriefInfo]:
+    teams = db.query(models.Team).join(models.Team.members).filter(models.User.id == user.id).all()
+    return [TeamBriefInfo.model_validate(team) for team in teams]
+
 
 
 
