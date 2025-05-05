@@ -3,6 +3,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from tickets import models
+from tickets.enums import *
+from tickets.models import UserTeam
 from tickets.schemas.team import TeamCreate
 from tickets.schemas.team import TeamBriefInfo
 
@@ -14,24 +16,24 @@ def _raise_not_found() -> None:
     )
 
 #---------------------------------CREATE LOGICS
-def create_team(
-    db: Session,
-    creator: models.User,
-    payload: TeamCreate,
-) -> models.Team:
+def create_team(db: Session,creator: models.User,payload: TeamCreate) -> models.Team:
     team = models.Team(name=payload.name)
     try:
         db.add(team)
         db.flush()
-    except IntegrityError:#rollabackaem if name isnt unique
+    except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="couldnt create a team (unique error)."
+            detail="Could not create team: name already exists."
         )
 
-    creator.teams.append(team)
-
+    association = UserTeam(
+        user_id=creator.id,
+        team_id=team.id,
+        role=TeamRole.admin
+    )
+    db.add(association)
     db.commit()
     db.refresh(team)
     return team
@@ -59,32 +61,21 @@ def get_user_teams(
 
 
 
-def join_team(
-    db: Session,
-    user: models.User,
-    code: str,
-) -> models.Team:
+def join_team(db: Session,user: models.User,code: str) -> models.Team:
     team = (
-        db.query(models.Team)
-        .filter(models.Team.code == code.upper())
-        .first()
-    )
+        db.query(models.Team).filter(models.Team.code == code.upper()).first())
     if not team:
         _raise_not_found()
-
-    if team not in user.teams:          # not to duplicate
-        user.teams.append(team)
-
-    db.commit()
+    exists = (db.query(UserTeam).filter_by(user_id=user.id, team_id=team.id).first())
+    if not exists:
+        association = UserTeam(user_id=user.id,team_id=team.id,role=TeamRole.member)
+        db.add(association)
+        db.commit()
     db.refresh(team)
     return team
 
 
-def leave_team(
-    db: Session,
-    user: models.User,
-    team_id: int,
-) -> None:
+def leave_team(db: Session,user: models.User,team_id: int) -> None:
     team = next((t for t in user.teams if t.id == team_id), None)
     if not team:
         raise HTTPException(

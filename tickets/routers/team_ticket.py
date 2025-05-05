@@ -7,6 +7,8 @@ from tickets.oauth2 import get_current_user
 from tickets.schemas.ticket import TicketCreate, TicketStatusUpdate, TicketAssigneeUpdate, TicketOut, TicketFeedbackUpdate, TicketPriority
 from tickets.repository import ticket as ticket_repo
 from tickets import models
+from ..enums import *
+
 logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/teams/{team_id}",
