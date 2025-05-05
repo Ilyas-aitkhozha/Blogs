@@ -48,7 +48,7 @@ def login_or_register_via_site(
     password = form_data.password
 
     user = db.query(models.User).filter(models.User.name == username).first()
-    if not user:
+    if not user:#creating persona
         user = models.User(
             name=username,
             email=f"{username}@local",
@@ -59,7 +59,7 @@ def login_or_register_via_site(
         db.add(user)
         db.commit()
         db.refresh(user)
-    else:
+    else:#checkaem dannie persona
         if not Hash.verify(user.password, password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
