@@ -19,7 +19,7 @@ async def require_team_member(
 ) -> User:
     link = (
         db.query(UserTeam)
-          .filter_by(team_id=team_id, user_id=current_user.id)
+          .filter(team_id=team_id, user_id=current_user.id)
           .first()
     )
     if not link:
@@ -37,7 +37,7 @@ async def require_team_admin(
 ) -> User:
     link = (
         db.query(UserTeam)
-          .filter_by(team_id=team_id, user_id=current_user.id)
+          .filter(team_id=team_id, user_id=current_user.id)
           .first()
     )
     if link.role != TeamRole.admin.value:
@@ -55,7 +55,7 @@ async def require_project_member(
 ) -> User:
     link = (
         db.query(ProjectUser)
-          .filter_by(project_id=project_id, user_id=current_user.id)
+          .filter(project_id=project_id, user_id=current_user.id)
           .first()
     )
     if not link:
@@ -73,7 +73,7 @@ async def require_project_admin(
 ) -> User:
     link = (
         db.query(ProjectUser)
-          .filter_by(project_id=project_id, user_id=current_user.id)
+          .filter(project_id=project_id, user_id=current_user.id)
           .first()
     )
     if link.role != ProjectRole.admin.value:
@@ -91,7 +91,7 @@ async def require_project_worker(
 ) -> User:
     link = (
         db.query(ProjectUser)
-          .filter_by(project_id=project_id, user_id=current_user.id)
+          .filter(project_id=project_id, user_id=current_user.id)
           .first()
     )
     if link.role != ProjectRole.worker.value:
