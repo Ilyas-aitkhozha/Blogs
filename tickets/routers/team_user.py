@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Path, status, Response
-from sqlalchemy.orm import Session, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, status, Response, Query
+from sqlalchemy.orm import Session
 from tickets.schemas import user as user_schema
 from tickets.database import get_db
 from tickets.repository import user as user_repository
