@@ -18,7 +18,7 @@ def compute_team_metrics(team_id: int, db: Session) -> Dict:
     team = db.query(models.Team).filter(models.Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail=f"Team {team_id} not found")
-
+    #query by team that you are in, outerjoin for tickets that not assigned to anyone
     q = (
         db.query(
             models.Ticket.status.label("status"),
@@ -28,8 +28,9 @@ def compute_team_metrics(team_id: int, db: Session) -> Dict:
         .outerjoin(models.User, models.User.id == models.Ticket.assigned_to)
         .filter(models.Ticket.team_id == team_id)
     )
+    #q.statement gives us proper sql-query, rather than raw object, my dataframe or specifically read_sql demands it
     df = pd.read_sql(q.statement, db.bind)
-
+    #checkaem how many status
     status_summary = (
         df["status"].value_counts().sort_index().to_dict()
     )
@@ -41,6 +42,7 @@ def compute_team_metrics(team_id: int, db: Session) -> Dict:
         .size()
         .reset_index(name="count")
     )
+    #chcekaem percent zagruzhennosty
     workload["percent"] = (workload["count"] / total_tickets * 100).round(0).astype(int)
     workload_dict = [
         {
@@ -48,7 +50,8 @@ def compute_team_metrics(team_id: int, db: Session) -> Dict:
             "assignee_name": n if pd.notna(n) else "Unassigned",
             "count": int(c),
             "percent": int(p),
-        }
+        }#preobrazuem in dict
+        #using itertuples vmesto iterrows, its faster fr (dont taking indexes)
         for a, n, c, p in workload.itertuples(index=False)
     ]
 
@@ -62,21 +65,19 @@ def compute_team_metrics(team_id: int, db: Session) -> Dict:
 
 @router.get("/teams/{team_id}/metrics", response_model=Dict)
 def team_metrics(team_id: int, db: Session = Depends(get_db)):
-    """JSON сводка для дашборда и бота."""
     return compute_team_metrics(team_id, db)
 
-
+#probably will change, graph logic should be on front
 @router.get(
     "/teams/{team_id}/status-pie",
     response_class=Response,
     responses={200: {"content": {"image/png": {}}}},
 )
 def status_pie(team_id: int, db: Session = Depends(get_db)):
-    """PNG‑пирог по статусам (для вставки в чат)."""
     metrics = compute_team_metrics(team_id, db)
     status_counts = metrics["status_summary"]
 
-    # График
+    # graph
     fig, ax = plt.subplots(figsize=(4, 4))
     ax.pie(
         status_counts.values(),
