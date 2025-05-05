@@ -221,7 +221,7 @@ def update_ticket_assignee(db: Session,ticket_id: int,update: TicketAssigneeUpda
           .filter_by(
               user_id=update.assigned_to,
               project_id=ticket.project_id,
-              role=ProjectRole.admin
+              role=ProjectRole.admin.value
           )
           .first()
     )
