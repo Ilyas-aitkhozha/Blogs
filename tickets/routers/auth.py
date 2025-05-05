@@ -4,7 +4,7 @@ from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
 from sqlalchemy.orm import Session
 import os
-
+import logging
 from tickets import models, jwttoken
 from tickets.database import get_db
 from tickets.hashing import Hash
@@ -12,7 +12,7 @@ from tickets.schemas.user import ShowUser
 from tickets.oauth2 import get_current_user
 from tickets.jwttoken import ACCESS_TOKEN_EXPIRE_MINUTES
 from fastapi.security import OAuth2PasswordRequestForm
-
+logger = logging.getLogger(__name__)
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 IS_PRODUCTION = ENVIRONMENT == "production"
 FRONTEND = os.getenv("FRONTEND_URL") if IS_PRODUCTION else os.getenv("FRONTEND_LOCAL_URL")
@@ -89,13 +89,13 @@ def get_me(current_user: models.User = Depends(get_current_user)):
 
 @router.get("/google")
 async def login_via_google(request: Request):
-    print("▶️ login_via_google вызван")
+    logger.info("▶️ login_via_google вызван")
     redirect_uri = f"{os.getenv('BACKEND_URL')}/auth/google/callback"
-    print("   redirect_uri =", redirect_uri)
+    logger.info("redirect_uri =", redirect_uri)
     try:
         return await oauth.google.authorize_redirect(request, redirect_uri)
     except Exception as e:
-        print("❌ authorize_redirect упал:", repr(e))
+        logger.error("❌ authorize_redirect упал:", repr(e))
         raise
 
 
