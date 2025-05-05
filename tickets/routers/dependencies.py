@@ -1,28 +1,102 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Path, status
 from sqlalchemy.orm import Session
 from tickets.database import get_db
-from tickets.models import User, Project
 from tickets.oauth2 import get_current_user
+from tickets.models import User, UserTeam, ProjectUser
+from tickets.enums import TeamRole, ProjectRole
 
-# supadmin
-async def require_superadmin(
+
+async def require_authenticated(
     current_user: User = Depends(get_current_user)
-):
-    if current_user.role != "superadmin":
-        raise HTTPException(status_code=403, detail="Requires superadmin privileges")
+) -> User:
     return current_user
 
-# proj admin
-async def require_project_admin(
-    project_id: int,
+
+async def require_team_member(
+    team_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    if current_user.role == "superadmin":
-        return current_user
-    project = db.query(Project).get(project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    if project.created_by != current_user.id:
-        raise HTTPException(status_code=403, detail="Not project admin")
+    current_user: User = Depends(require_authenticated),
+) -> User:
+    link = (
+        db.query(UserTeam)
+          .filter_by(team_id=team_id, user_id=current_user.id)
+          .first()
+    )
+    if not link:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not a member of this team",
+        )
+    return current_user
+
+
+async def require_team_admin(
+    team_id: int = Path(..., ge=1),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_team_member),
+) -> User:
+    link = (
+        db.query(UserTeam)
+          .filter_by(team_id=team_id, user_id=current_user.id)
+          .first()
+    )
+    if link.role != TeamRole.admin.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Requires team admin role",
+        )
+    return current_user
+
+
+async def require_project_member(
+    project_id: int = Path(..., ge=1),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_authenticated),
+) -> User:
+    link = (
+        db.query(ProjectUser)
+          .filter_by(project_id=project_id, user_id=current_user.id)
+          .first()
+    )
+    if not link:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not a member of this project",
+        )
+    return current_user
+
+
+async def require_project_admin(
+    project_id: int = Path(..., ge=1),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_project_member),
+) -> User:
+    link = (
+        db.query(ProjectUser)
+          .filter_by(project_id=project_id, user_id=current_user.id)
+          .first()
+    )
+    if link.role != ProjectRole.admin.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Requires project admin role",
+        )
+    return current_user
+
+
+async def require_project_worker(
+    project_id: int = Path(..., ge=1),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_project_member),
+) -> User:
+    link = (
+        db.query(ProjectUser)
+          .filter_by(project_id=project_id, user_id=current_user.id)
+          .first()
+    )
+    if link.role != ProjectRole.worker.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Requires project worker role",
+        )
     return current_user
