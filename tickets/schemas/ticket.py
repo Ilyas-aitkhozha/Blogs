@@ -27,8 +27,6 @@ class TicketCreate(TicketBase):
 
 class TicketStatusUpdate(BaseModel):
     status: TicketStatus
-    feedback: Optional[str] = None
-    confirmed: Optional[bool] = False
 
 class TicketFeedbackUpdate(BaseModel):
     feedback: Optional[str] = None
