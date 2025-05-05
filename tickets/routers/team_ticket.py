@@ -13,10 +13,10 @@ router = APIRouter(
     tags=["Team Tickets"],
 )
 
-
+#helper
 def _ensure_membership(user: models.User, team_id: int) -> None:
     if not any(t.id == team_id for t in user.teams):
-        raise HTTPException(status_code=403, detail="Нет доступа к этой команде.")
+        raise HTTPException(status_code=403, detail="you dont have access to this team.")
 
 
 @router.post("/tickets", response_model=TicketOut, status_code=status.HTTP_201_CREATED)
