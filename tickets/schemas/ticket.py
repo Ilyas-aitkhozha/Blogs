@@ -1,20 +1,11 @@
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from typing import Optional
-from enum import Enum
 from datetime import datetime
 from tickets.schemas import user
+from ..enums import *
 
-#enumki
-class TicketPriority(str, Enum):
-    low = "low"
-    medium = "medium"
-    high = "high"
 
-class TicketStatus(str, Enum):
-    open = "open"
-    in_progress = "in_progress"
-    closed = "closed"
 
 #base, parent
 class TicketBase(BaseModel):

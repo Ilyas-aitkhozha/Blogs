@@ -2,17 +2,13 @@ from pydantic import BaseModel, Field
 from typing import List
 from pydantic import ConfigDict
 from typing_extensions import Annotated
-from enum import Enum
-from typing import TYPE_CHECKING
-from tickets.schemas.team import TeamOut
+from typing import TYPE_CHECKING, Optional
+from tickets.schemas.team import TeamWithProjects
 
 if TYPE_CHECKING:
     from tickets.schemas.ticket import TicketOut
 
-#enumki
-class UserRole(str, Enum):
-    user = "user"
-    admin = "admin"
+
 #base, parent
 class UserBase(BaseModel):
     name: str
@@ -23,12 +19,11 @@ class UserCreate(UserBase):
 #showing user info
 class ShowUser(UserBase):
     id: int
-    role: UserRole
+    email: Optional[str] = None
     is_available: bool
-    teams: list[TeamOut]
+    teams: List[TeamWithProjects]
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
 #giving info about users and also ticket that he created
 class UserWithTickets(ShowUser):
     tickets_created: Annotated[List["TicketOut"], Field(default_factory=list)]

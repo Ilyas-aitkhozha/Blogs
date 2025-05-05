@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import List, Optional
+from ..enums import ProjectRole
 
 class ProjectBase(BaseModel):
     name: str
@@ -17,6 +18,11 @@ class ProjectOut(BaseModel):
     team_id: int
     created_by: int
     created_at: datetime
-    worker_team: List[int]
 
+    model_config = ConfigDict(from_attributes=True)
+
+class ProjectMembership(BaseModel):
+    project: ProjectOut
+    role: ProjectRole
+    joined_at: datetime
     model_config = ConfigDict(from_attributes=True)
