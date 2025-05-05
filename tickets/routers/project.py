@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from tickets.database import get_db
 from tickets.schemas.project import ProjectCreate, ProjectOut
-from tickets.repository.project_repository import create_project, get_projects_by_team
+from tickets.repository.project import create_project
 from tickets.routers.dependencies import require_superadmin
 from tickets.oauth2 import get_current_user
 from tickets.models import User, Project
