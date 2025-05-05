@@ -13,6 +13,9 @@ class TeamOut(BaseModel):
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+class TeamBriefInfo(BaseModel):
+    name:str
+    code:str
 
 class JoinTeam(BaseModel):
     code: str
