@@ -1,28 +1,29 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, status, Response, Query
 from sqlalchemy.orm import Session
+from typing import List
 from tickets.schemas import user as user_schema
 from tickets.database import get_db
 from tickets.repository import user as user_repository
 from tickets.oauth2 import get_current_user
 from tickets import models
 from tickets.routers.dependencies import require_team_member
-from typing import List
-from ..enums import *
+from ..enums import TeamRole
 
 router = APIRouter(prefix="/teams/{team_id}", tags=["Team Members"])
-#decided to make it into def cause too many times used this
-def _ensure_member(user:models.User, team_id: int):
+
+def _ensure_member(user: models.User, team_id: int):
     if not any(t.id == team_id for t in user.teams):
         raise HTTPException(status_code=403, detail="Team not available.")
 
 def _ensure_team_admin(user: models.User, team_id: int):
-    if not any(t.team_id == team_id and t.role is TeamRole.admin for t in user.user_teams):
+    if not any(ut.team_id == team_id and ut.role is TeamRole.admin for ut in user.user_teams):
         raise HTTPException(status_code=403, detail="Requires team admin role.")
 
-#below is all the endpoints
-
 #----------------------- GET logics
-@router.get("/users",response_model=List[user_schema.UserBrief])
+@router.get(
+    "/users",
+    response_model=List[user_schema.UserBrief],
+)
 def list_team_user_names(
     team_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
@@ -31,30 +32,39 @@ def list_team_user_names(
     _ensure_member(current_user, team_id)
     return user_repository.get_team_user_briefs(db, team_id)
 
-@router.get("/available-admins", response_model=List[user_schema.ShowUser])
+@router.get(
+    "/available-admins",
+    response_model=List[user_schema.UserBrief],
+)
 def available_admins(
     team_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_team_member),
 ):
     _ensure_member(current_user, team_id)
-    return user_repository.get_available_admins_in_team(db, team_id)
+    return user_repository.get_available_admin_briefs(db, team_id)
 
-@router.get("/available-users", response_model=List[user_schema.ShowUser])
+@router.get(
+    "/available-users",
+    response_model=List[user_schema.UserBrief],
+)
 def available_users(
     team_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_team_member),
 ):
     _ensure_member(current_user, team_id)
-    return user_repository.get_team_members(db, team_id, role =TeamRole.member)
+    return user_repository.get_team_user_briefs(db, team_id)
 
-@router.get("/users/{user_id}", response_model=user_schema.ShowUser)
+@router.get(
+    "/users/{user_id}",
+    response_model=user_schema.ShowUser,
+)
 def get_user(
     user_id: int,
     team_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_team_member),
 ):
     _ensure_member(current_user, team_id)
     user = user_repository.get_user_by_id(db, user_id)
@@ -74,7 +84,11 @@ def update_my_availability(
     db.refresh(current_user)
     return current_user
 
-@router.post("/members/{user_id}",response_model=user_schema.ShowUser, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/members/{user_id}",
+    response_model=user_schema.ShowUser,
+    status_code=status.HTTP_201_CREATED
+)
 def add_user_to_team(
     user_id: int = Path(..., ge=1),
     team_id: int = Path(..., ge=1),
@@ -90,7 +104,10 @@ def add_user_to_team(
     db.commit()
     return user_repository.get_user_by_id(db, user_id)
 
-@router.delete("/members/{user_id}",status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/members/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT
+)
 def remove_user_from_team(
     user_id: int = Path(..., ge=1),
     team_id: int = Path(..., ge=1),

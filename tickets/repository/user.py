@@ -31,7 +31,6 @@ def get_team_members(
           .join(UserTeam, UserTeam.user_id == User.id)
           .filter(
               UserTeam.team_id == team_id,
-              # раньше было role == role, стало:
               UserTeam.role    == role.value
           )
           .all()
@@ -43,12 +42,16 @@ def get_available_admins_in_team(db: Session, team_id: int) -> List[models.User]
           .join(UserTeam, UserTeam.user_id == User.id)
           .filter(
               UserTeam.team_id == team_id,
-              # исправлено:
               UserTeam.role    == TeamRole.admin.value,
               models.User.is_available.is_(True)
           )
           .all()
     )
+
+def get_available_admin_briefs(db: Session, team_id: int) -> List[UserBrief]:
+    admins = get_available_admins_in_team(db, team_id)
+    unique = {u.id: u for u in admins}.values()
+    return [UserBrief.model_validate(u) for u in unique]
 
 def get_least_loaded_admins(db: Session, team_id: int, limit: int = 5) -> List[models.User]:
     subq = (
@@ -73,7 +76,6 @@ def get_least_loaded_admins(db: Session, team_id: int, limit: int = 5) -> List[m
         .join(UserTeam, UserTeam.user_id == models.User.id)
         .filter(
             UserTeam.team_id == team_id,
-            # и здесь:
             UserTeam.role    == TeamRole.admin.value,
             models.User.is_available.is_(True),
         )
@@ -82,6 +84,7 @@ def get_least_loaded_admins(db: Session, team_id: int, limit: int = 5) -> List[m
         .all()
     )
     return [user for user, _ in results]
+
 # in team
 def get_available_users_by_role(
     db: Session,
@@ -93,15 +96,14 @@ def get_available_users_by_role(
         users = get_available_admins_in_team(db, team_id)
     else:
         users = get_team_members(db, team_id, TeamRole.member)
-
     return users[:limit] if limit else users
-#in project
+# in project
 def get_project_users_by_role(
     db: Session,
     project_id: int,
     role: ProjectRole,
     limit: Optional[int] = None
-) -> list[models.User]:
+) -> List[models.User]:
     q = (
         db.query(User)
           .join(ProjectUser, ProjectUser.user_id == User.id)
@@ -117,11 +119,10 @@ def get_project_users_by_role(
 def get_team_user_briefs(db: Session, team_id: int) -> List[UserBrief]:
     members = get_team_members(db, team_id, role=TeamRole.member)
     admins  = get_available_admins_in_team(db, team_id)
-    unique = {u.id: u for u in members + admins}.values()
+    unique  = {u.id: u for u in members + admins}.values()
     return [UserBrief.model_validate(u) for u in unique]
 
 #---------------CREATE LOGICS
-
 def create_user(db: Session, payload: UserCreate) -> models.User:
     hashed_pwd = Hash.bcrypt(payload.password)
     user = models.User(name=payload.name, password=hashed_pwd)
