@@ -24,6 +24,10 @@ class ShowUser(UserBase):
     teams: List[TeamWithProjects]
     model_config = ConfigDict(from_attributes=True)
 
+class UserBrief(BaseModel):
+    id: int
+    name: str
+    model_config = ConfigDict(from_attributes=True)
 #giving info about users and also ticket that he created
 class UserWithTickets(ShowUser):
     tickets_created: Annotated[List["TicketOut"], Field(default_factory=list)]
