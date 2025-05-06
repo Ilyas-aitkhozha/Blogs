@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from pydantic import ConfigDict
 from ..enums import TeamRole
@@ -32,5 +32,5 @@ class TeamWithProjects(BaseModel):
     team: TeamOut
     role: TeamRole
     joined_at: datetime
-    projects: list[ProjectMembership]
+    projects: list[ProjectMembership] =Field(..., alias="project_users")
     model_config = ConfigDict(from_attributes=True)
