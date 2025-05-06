@@ -48,7 +48,7 @@ def available_admins(
     "/available-users",
     response_model=List[user_schema.UserBrief],
 )
-def available_users(
+def available_members(
     team_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(require_team_member),
