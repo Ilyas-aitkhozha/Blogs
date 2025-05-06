@@ -21,7 +21,7 @@ class ShowUser(UserBase):
     id: int
     email: Optional[str] = None
     is_available: bool
-    teams: List[TeamWithProjects]=Field(..., alias="user_teams")
+    teams: List[TeamWithProjects]
     model_config = ConfigDict(from_attributes=True)
 
 #giving info about users and also ticket that he created
