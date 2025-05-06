@@ -5,6 +5,7 @@ from tickets.database import get_db
 from tickets.repository import user as user_repository
 from tickets.oauth2 import get_current_user
 from tickets import models
+from tickets.routers.dependencies import require_team_member
 from typing import List
 from ..enums import *
 
@@ -21,14 +22,14 @@ def _ensure_team_admin(user: models.User, team_id: int):
 #below is all the endpoints
 
 #----------------------- GET logics
-@router.get("/users", response_model=List[user_schema.ShowUser])
-def list_team_users(
+@router.get("/users",response_model=List[user_schema.UserBrief])
+def list_team_user_names(
     team_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(require_team_member),
 ):
-    _ensure_team_admin(current_user, team_id)
-    return user_repository.get_team_users_with_projects(db, team_id)
+    _ensure_member(current_user, team_id)
+    return user_repository.get_team_user_briefs(db, team_id)
 
 @router.get("/available-admins", response_model=List[user_schema.ShowUser])
 def available_admins(
