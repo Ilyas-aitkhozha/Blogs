@@ -33,4 +33,4 @@ class TeamWithProjects(BaseModel):
     role: TeamRole
     joined_at: datetime
     projects: list[ProjectMembership] =Field(..., alias="project_users")
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True,populate_by_name=True)
