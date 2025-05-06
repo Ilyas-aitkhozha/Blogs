@@ -29,4 +29,4 @@ class UserWithTickets(ShowUser):
     tickets_created: Annotated[List["TicketOut"], Field(default_factory=list)]
     tickets_assigned: Annotated[List["TicketOut"], Field(default_factory=list)]
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True,populate_by_name=True)
