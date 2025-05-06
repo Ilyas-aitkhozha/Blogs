@@ -7,7 +7,7 @@ from tickets import models
 from tickets.hashing import Hash
 from tickets.schemas.project import ProjectMembership
 from tickets.schemas.team import TeamWithProjects
-from tickets.schemas.user import UserCreate, ShowUser
+from tickets.schemas.user import UserCreate, UserBrief
 from tickets.models import User, UserTeam, ProjectUser, Project
 from tickets.enums import *
 
@@ -114,49 +114,11 @@ def get_project_users_by_role(
         q = q.limit(limit)
     return q.all()
 
-def get_team_users_with_projects(db: Session, team_id: int) -> list[ShowUser]:
+def get_team_user_briefs(db: Session, team_id: int) -> List[UserBrief]:
     members = get_team_members(db, team_id, role=TeamRole.member)
     admins  = get_available_admins_in_team(db, team_id)
-    users   = members + admins
-
-    output: list[ShowUser] = []
-    for u in users:
-        teams_out: list[TeamWithProjects] = []
-        for ut in u.user_teams:
-            if ut.team_id != team_id:
-                continue
-            pus = (
-                db.query(ProjectUser)
-                  .join(Project)
-                  .filter(
-                    ProjectUser.user_id == u.id,
-                    Project.team_id       == team_id
-                  )
-                  .all()
-            )
-            projects_out = [
-                ProjectMembership(
-                    project   = pu.project,
-                    role      = pu.role,
-                    joined_at = pu.joined_at
-                )
-                for pu in pus
-            ]
-            teams_out.append(TeamWithProjects(
-                team      = ut.team,
-                role      = ut.role,
-                joined_at = ut.joined_at,
-                projects  = projects_out
-            ))
-        output.append(ShowUser(
-            id           = u.id,
-            name         = u.name,
-            email        = u.email,
-            is_available = u.is_available,
-            teams        = teams_out
-        ))
-
-    return output
+    unique = {u.id: u for u in members + admins}.values()
+    return [UserBrief.model_validate(u) for u in unique]
 
 #---------------CREATE LOGICS
 
