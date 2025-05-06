@@ -54,7 +54,12 @@ def available_users(
     current_user: models.User = Depends(require_team_member),
 ):
     _ensure_member(current_user, team_id)
-    return user_repository.get_team_user_briefs(db, team_id)
+    users = user_repository.get_available_users_by_role(
+        db,
+        role=TeamRole.member.value,
+        team_id=team_id
+    )
+    return [user_schema.UserBrief.model_validate(u) for u in users]
 
 @router.get(
     "/users/{user_id}",
