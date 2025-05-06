@@ -6,7 +6,6 @@ from ..enums import ProjectRole
 class ProjectBase(BaseModel):
     name: str
     description: Optional[str]
-    team_id: int
 
 class ProjectCreate(ProjectBase):
     pass
