@@ -27,9 +27,8 @@ def list_team_users(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_member(current_user, team_id)
-    return (user_repository.get_team_members(db, team_id, role=TeamRole.member) # we need admins and users, so doing concat, and everything alr
-        + user_repository.get_available_admins_in_team(db, team_id))
+    _ensure_team_admin(current_user, team_id)
+    return user_repository.get_team_users_with_projects(db, team_id)
 
 @router.get("/available-admins", response_model=List[user_schema.ShowUser])
 def available_admins(
