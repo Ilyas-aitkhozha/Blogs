@@ -28,11 +28,6 @@ def create_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_team_admin),
 ):
-    if project_in.team_id != team_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Team ID mismatch"
-        )
     return project_repo.create_project(db, project_in,team_id, current_user.id)
 
 @router.get(
