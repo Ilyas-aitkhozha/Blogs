@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+from typing import Optional
 from dotenv import load_dotenv
 import google.generativeai as genai
 from sqlalchemy.orm import Session
@@ -52,7 +53,7 @@ def generate_reply(
     session_id: str,
     user_input: str,
     user_id: int,
-    team_id: int,
+    team_id: Optional[int] = None,
     system_prompt: str = BASE_PROMT  # <— новый параметр с дефолтом
 ) -> str:
     messages_list = messages(db, session_id, user_input, user_id)
