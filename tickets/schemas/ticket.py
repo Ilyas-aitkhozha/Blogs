@@ -13,6 +13,7 @@ class TicketBase(BaseModel):
     description: str
 
 class TicketCreate(TicketBase):
+    type: TicketType
     assigned_to_name: Optional[str] = None
     priority: Optional[TicketPriority] = TicketPriority.medium
 
@@ -28,6 +29,7 @@ class TicketAssigneeUpdate(BaseModel):
 
 class TicketOut(TicketBase):
     id: int
+    type: TicketType
     status: TicketStatus
     creator: user.ShowUser
     assignee: Optional[user.ShowUser]
