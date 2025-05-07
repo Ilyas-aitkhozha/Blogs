@@ -18,3 +18,7 @@ class TicketPriority(str, Enum):
     low         = "low"
     medium      = "medium"
     high        = "high"
+
+class TicketType(str, Enum):
+    worker = "worker"
+    user = "user"

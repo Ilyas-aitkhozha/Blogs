@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 import random, string
 from datetime import datetime, timezone
 from .database import Base
-from .enums import TeamRole, ProjectRole, TicketStatus, TicketPriority
+from .enums import TeamRole, ProjectRole, TicketStatus, TicketPriority, TicketType
 
 
 #helper
@@ -77,6 +77,7 @@ class Ticket(Base):
                          onupdate=lambda: datetime.now(timezone.utc))
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
     project = relationship("Project", back_populates="tickets")
+    type =  Column(SqlEnum(TicketType, native_enum=False), nullable=False, default=TicketType.worker)
     creator  = relationship("User", back_populates="tickets_created", foreign_keys=[created_by])
     assignee = relationship("User", back_populates="tickets_assigned", foreign_keys=[assigned_to])
     team     = relationship("Team", back_populates="tickets")
