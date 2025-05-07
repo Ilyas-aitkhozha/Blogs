@@ -87,7 +87,7 @@ def read_user_in_team(
     }
 
 #---- Update Logics
-@router.put("/availability", response_model=user_schema.ShowUser)
+@router.put("/availability", response_model=user_schema.UserAvailabilityOut)
 def update_my_availability(
     is_available: bool,
     db: Session = Depends(get_db),
