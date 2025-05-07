@@ -62,6 +62,7 @@ def create_ticket(
         title=ticket_in.title,
         description=ticket_in.description,
         created_by=user_id,
+        type=ticket_in.type,
         assigned_to=assigned_user_id,
         team_id=team_id,
         project_id=project_id,
