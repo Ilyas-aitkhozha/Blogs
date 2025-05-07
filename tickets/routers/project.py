@@ -1,13 +1,14 @@
 # routers/project.py
-
 from typing import List
 from fastapi import APIRouter, Depends, Path, Query, status, HTTPException, Response
 from sqlalchemy.orm import Session
-
+from ..enums import *
 from tickets.database import get_db
 from tickets.routers.dependencies import require_team_admin
 from tickets.schemas.project import ProjectCreate, ProjectOut
+from tickets.schemas.user import ShowUser
 from tickets.repository import project as project_repo
+from tickets.repository import user as user_repo
 from tickets.enums import ProjectRole
 from tickets.models import User
 
@@ -85,3 +86,12 @@ def remove_user_from_project(
 ):
     project_repo.remove_user_from_project(db, project_id, user_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+@router.get("/projects/{project_id}/assignees", response_model=List[ShowUser])
+def list_assignees(
+    project_id: int,
+    ticket_type: TicketType,
+    db: Session = Depends(get_db)
+):
+    if ticket_type == TicketType.worker:
+        return user_repo.get_available_users_by_role(db, "worker", project_id)
+    return user_repo.get_project_users_by_role(db, project_id,ProjectRole.member)
