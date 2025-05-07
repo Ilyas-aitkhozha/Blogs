@@ -38,6 +38,11 @@ class UserWithTickets(ShowUser):
 
     model_config = ConfigDict(from_attributes=True,populate_by_name=True)
 
+class UserAvailabilityOut(BaseModel):
+    id: int
+    is_available: bool
+    model_config = ConfigDict(from_attributes=True)
+
 class UserInTeamWithProjects(BaseModel):
     user: UserBrief
     role: TeamRole
