@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, status, Response, Q
 from sqlalchemy.orm import Session
 from typing import List
 from tickets.schemas import user as user_schema
+from tickets.schemas import team as team_schema
 from tickets.database import get_db
 from tickets.repository import user as user_repository
 from tickets.oauth2 import get_current_user
@@ -60,7 +61,9 @@ def available_members(
         team_id=team_id
     )
     return [user_schema.UserBrief.model_validate(u) for u in users]
-
+@router.get("/teams", response_model=List[team_schema.TeamOut])
+def list_my_teams(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    return current_user.teams
 @router.get(
     "/users/{user_id}",
     response_model=user_schema.ShowUser,
