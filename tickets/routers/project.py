@@ -33,7 +33,7 @@ def create_project(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Team ID mismatch"
         )
-    return project_repo.create_project(db, project_in, current_user.id)
+    return project_repo.create_project(db, project_in,team_id, current_user.id)
 
 @router.get(
     "/",
