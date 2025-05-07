@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, status, Response, Query
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 from tickets.schemas import user as user_schema
 from tickets.schemas import team as team_schema
 from tickets.database import get_db
@@ -100,7 +101,7 @@ def update_my_availability(
 
 @router.post(
     "/members/{user_id}",
-    response_model=user_schema.ShowUser,
+    response_model=team_schema.TeamMembership,
     status_code=status.HTTP_201_CREATED
 )
 def add_user_to_team(
@@ -111,12 +112,19 @@ def add_user_to_team(
     current_user: models.User = Depends(get_current_user),
 ):
     _ensure_team_admin(current_user, team_id)
-    if any(ut.team_id == team_id for ut in db.query(models.UserTeam).filter_by(user_id=user_id)):
+    exists = (db.query(models.UserTeam).filter_by(user_id=user_id, team_id=team_id).first())
+    if exists:
         raise HTTPException(status_code=400, detail="User already in team")
-    association = models.UserTeam(user_id=user_id, team_id=team_id, role=role)
+    association = models.UserTeam(
+        user_id=user_id,
+        team_id=team_id,
+        role=role,
+        joined_at=datetime.now()
+    )
     db.add(association)
     db.commit()
-    return user_repository.get_user_by_id(db, user_id)
+    db.refresh(association)
+    return association
 
 @router.delete(
     "/members/{user_id}",
