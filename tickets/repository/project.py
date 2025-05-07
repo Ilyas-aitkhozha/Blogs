@@ -14,12 +14,13 @@ from tickets.enums import ProjectRole
 def create_project(
     db: Session,
     project_in: ProjectCreate,
+    team_id: int,
     user_id: int
 ) -> Project:
     proj = Project(
         name=project_in.name,
         description=project_in.description,
-        team_id=project_in.team_id,
+        team_id=team_id,
         created_by=user_id
     )
     db.add(proj)
