@@ -1,14 +1,12 @@
 from typing import List, Optional
 from fastapi import HTTPException
 from pydantic import EmailStr
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from tickets import models
 from tickets.hashing import Hash
-from tickets.schemas.project import ProjectMembership
-from tickets.schemas.team import TeamWithProjects
 from tickets.schemas.user import UserCreate, UserBrief
-from tickets.models import User, UserTeam, ProjectUser, Project
+from tickets.models import User, UserTeam, ProjectUser
 from tickets.enums import *
 
 #--------------------------- GET LOGICS
@@ -115,6 +113,17 @@ def get_project_users_by_role(
     if limit:
         q = q.limit(limit)
     return q.all()
+
+def get_available_users_by_project(
+    db: Session,
+    project_id: int
+) -> List[User]:
+    stmt = (
+        select(User)
+        .join(ProjectUser, ProjectUser.user_id == User.id)
+        .where(ProjectUser.project_id == project_id)
+    )
+    return db.execute(stmt).scalars().all()
 
 def get_team_user_briefs(db: Session, team_id: int) -> List[UserBrief]:
     members = get_team_members(db, team_id, role=TeamRole.member)
