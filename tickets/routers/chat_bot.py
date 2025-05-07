@@ -41,103 +41,101 @@ def chat(
     session_record = get_or_create_session(db, current_user.id)
     session_id = session_record.id
     user_msg = req.message.strip()
-    team_id = current_user.teams[0].id
 
-    # creating ticket
-    if user_msg.lower().startswith(TASK_PREFIX):
+    # пытаемся взять первую команду, если есть
+    current_team = current_user.teams[0] if current_user.teams else None
+    current_project = current_user.project_users[0] if current_user.project_users else None
+
+    # флаги команд, которые требуют участия в команде
+    is_ticket_cmd = user_msg.lower().startswith(TASK_PREFIX)
+    is_report_cmd = user_msg.lower().startswith("/report")
+    is_chart_cmd = any(k in user_msg.lower() for k in ["chart", "diagram", "visual"])
+
+    # если команда-операция и нет membership → совет вступить
+    if (is_ticket_cmd or is_report_cmd or is_chart_cmd) and not current_team:
+        reply = (
+            "⚠ Вы пока ни в одной команде. "
+            "Чтобы использовать эту функцию, вступите в команду — отправьте\n"
+            "`/join_team <код_команды>`."
+        )
+        save_message(db, session_id, role="user", content=user_msg)
+        save_message(db, session_id, role="assistant", content=reply)
+        return ChatResponse(reply=reply, session_id=session_id)
+
+    # 1) Создание тикета
+    if is_ticket_cmd:
         logger.info("ai bot creating ticket")
         body = user_msg[len(TASK_PREFIX):].strip()
-        lower_body = body.lower()
         result = analyze_tasks(db, session_id, body, current_user.id)
         title = result.get("title", body[:50].strip())
         description = result.get("description", body).strip()
         candidates = result.get("candidate_roles", [])
 
-        if NO_ASSIGN_RE.search(lower_body):
+        if NO_ASSIGN_RE.search(body.lower()):
             assignee_name = None
         else:
-            m = ASSIGN_RE.search(lower_body)
+            m = ASSIGN_RE.search(body.lower())
             if m:
                 assignee_name = m.group(1).strip()
             elif candidates:
                 assignee_name = candidates[0]
             else:
-                admins = get_least_loaded_admins(db=db, team_id=team_id, limit=2)
+                admins = get_least_loaded_admins(
+                    db=db,
+                    team_id=current_team.id,
+                    limit=2
+                )
                 assignee_name = admins[0].name if admins else None
 
-        try:
-            ticket_in = ticket_schema.TicketCreate(
-                title=title,
-                description=description,
-                assigned_to_name=assignee_name
-            )
-            new_ticket = ticket_repository.create_ticket(
-                db=db,
-                ticket_in=ticket_in,
-                user_id=current_user.id,
-                team_id=team_id
-            )
-        except HTTPException:
-            logger.warning(
-                "HTTPException while creating ticket: %s  User: %s  Team: %s  Title: %r",
-                HTTPException,
-                current_user.id,
-                team_id,
-                title
-            )
-            raise
-        except Exception as e:
-            logger.error(
-                "Unexpected error while creating ticket  User: %s  Team: %s  Title: %r  Error: %s",
-                current_user.id,
-                team_id,
-                title,
-                str(e),
-                exc_info=True  # vivodit stack trace
-            )
-            raise HTTPException(status_code=500, detail="Internal server error")
+        ticket_in = ticket_schema.TicketCreate(
+            title=title,
+            description=description,
+            assigned_to_name=assignee_name
+        )
+        new_ticket = ticket_repository.create_ticket(
+            db=db,
+            ticket_in=ticket_in,
+            user_id=current_user.id,
+            team_id=current_team.id,
+            project_id=current_project.project_id
+        )
 
-        reply = f"🎫 Ticket #{new_ticket.id} created: {new_ticket.title}"
-        if assignee_name:
-            reply += f" (assigned to {assignee_name})"
-        else:
-            reply += " (currently unassigned)"
+        reply = f"🎫 Тикет #{new_ticket.id} создан: «{new_ticket.title}»"
+        reply += f" (назначен {assignee_name})" if assignee_name else " (пока без исполнителя)"
 
         save_message(db, session_id, role="user", content=user_msg)
         save_message(db, session_id, role="assistant", content=reply)
         return ChatResponse(reply=reply, session_id=session_id, ticket=new_ticket)
 
-    # text report
-    if user_msg.lower().startswith("/report"):
+    if is_report_cmd:
         logger.info("ai bot reporting ticket")
         reply = report_with_metrics(
             db=db,
             session_id=session_id,
             user_input=user_msg,
             user_id=current_user.id,
-            team_id=team_id
+            team_id=current_team.id
         )
         save_message(db, session_id, role="user", content=user_msg)
         save_message(db, session_id, role="assistant", content=reply)
         return ChatResponse(reply=reply, session_id=session_id)
 
-    # graph
-    if any(k in user_msg.lower() for k in ["chart", "diagram", "visual"]):
-        logger.info("ai bot reporting ticket visuaalllyy")
-        reply = f"GENERATE_CHART:STATUS_PIE:{team_id}"
+    if is_chart_cmd:
+        logger.info("ai bot reporting visually")
+        reply = f"GENERATE_CHART:STATUS_PIE:{current_team.id}"
         save_message(db, session_id, role="user", content=user_msg)
         save_message(db, session_id, role="assistant", content=reply)
         return ChatResponse(reply=reply, session_id=session_id)
 
-    # basic chat
     reply = generate_reply(
         db=db,
         session_id=session_id,
         user_input=user_msg,
-        user_id=current_user.id,
-        team_id=team_id
+        user_id=current_user.id
     )
+    save_message(db, session_id, role="assistant", content=reply)
     return ChatResponse(reply=reply, session_id=session_id)
+
 
 @router.post("/message", response_model=ChatResponse)
 def open_chat(
