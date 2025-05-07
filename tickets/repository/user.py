@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import HTTPException
+from fastapi import HTTPException,status
 from pydantic import EmailStr
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -130,6 +130,38 @@ def get_team_user_briefs(db: Session, team_id: int) -> List[UserBrief]:
     admins  = get_available_admins_in_team(db, team_id)
     unique  = {u.id: u for u in members + admins}.values()
     return [UserBrief.model_validate(u) for u in unique]
+
+def get_user_with_projects_in_team(
+    db: Session,
+    team_id: int,
+    user_id: int
+) -> models.UserTeam:
+    assoc = (
+        db.query(models.UserTeam)
+          .filter_by(team_id=team_id, user_id=user_id)
+          .first()
+    )
+    if not assoc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {user_id} is not a member of team {team_id}"
+        )
+    return assoc
+
+def get_project_memberships_for_user_in_team(
+    db: Session,
+    team_id: int,
+    user_id: int
+) -> list[models.ProjectUser]:
+    return (
+        db.query(models.ProjectUser)
+          .join(models.Project, models.Project.id == models.ProjectUser.project_id)
+          .filter(
+              models.ProjectUser.user_id == user_id,
+              models.Project.team_id    == team_id
+          )
+          .all()
+    )
 
 #---------------CREATE LOGICS
 def create_user(db: Session, payload: UserCreate) -> models.User:
