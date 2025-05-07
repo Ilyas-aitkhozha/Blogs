@@ -26,6 +26,15 @@ def create_project(
     db.add(proj)
     db.commit()
     db.refresh(proj)
+    association = ProjectUser(
+        user_id=user_id,
+        project_id=proj.id,
+        role=ProjectRole.admin # when creating, instantly i give admin, idk if its good, but will see in future
+    )
+    db.add(association)
+    db.commit()
+
+    db.refresh(proj)
     return proj
 
 #------------------------------ GET LOGICS
