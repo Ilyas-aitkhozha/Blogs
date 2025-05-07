@@ -4,6 +4,9 @@ from pydantic import ConfigDict
 from typing_extensions import Annotated
 from typing import TYPE_CHECKING, Optional
 from tickets.schemas.team import TeamWithProjects
+from datetime import datetime
+from .project import ProjectMembership
+from ..enums import *
 
 if TYPE_CHECKING:
     from tickets.schemas.ticket import TicketOut
@@ -34,3 +37,10 @@ class UserWithTickets(ShowUser):
     tickets_assigned: Annotated[List["TicketOut"], Field(default_factory=list)]
 
     model_config = ConfigDict(from_attributes=True,populate_by_name=True)
+
+class UserInTeamWithProjects(BaseModel):
+    user: UserBrief
+    role: TeamRole
+    joined_at: datetime
+    projects: List[ProjectMembership]
+    model_config = ConfigDict(from_attributes=True)
