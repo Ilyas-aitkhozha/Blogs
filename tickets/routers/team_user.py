@@ -66,19 +66,25 @@ def list_my_teams(db: Session = Depends(get_db), current_user: models.User = Dep
     return current_user.teams
 @router.get(
     "/users/{user_id}",
-    response_model=user_schema.ShowUser,
+    response_model=user_schema.UserInTeamWithProjects
 )
-def get_user(
-    user_id: int,
-    team_id: int = Path(..., ge=1),
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_team_member),
+def read_user_in_team(
+    team_id: int    = Path(..., ge=1),
+    user_id: int    = Path(..., ge=1),
+    db: Session     = Depends(get_db),
+    _: None         = Depends(require_team_member),  # current_user в этой команде
 ):
-    _ensure_member(current_user, team_id)
-    user = user_repository.get_user_by_id(db, user_id)
-    if team_id not in [t.id for t in user.teams]:
-        raise HTTPException(status_code=404, detail="User not in this team")
-    return user
+    assoc       = user_repository.get_user_with_projects_in_team(db, team_id, user_id)
+    proj_assocs = user_repository.get_project_memberships_for_user_in_team(db, team_id, user_id)
+    #pydantic take UserBrief,
+    #assoc.role/joined_at
+    #from list proj_assocs in ProjectMembership.
+    return {
+        "user":      assoc.user,
+        "role":      assoc.role,
+        "joined_at": assoc.joined_at,
+        "projects":  proj_assocs
+    }
 
 #---- Update Logics
 @router.put("/availability", response_model=user_schema.ShowUser)
