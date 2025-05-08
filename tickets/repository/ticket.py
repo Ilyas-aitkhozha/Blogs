@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timezone
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
@@ -13,109 +13,75 @@ def create_ticket(
     db: Session,
     ticket_in: TicketCreate,
     user_id: int,
-    team_id: int,
     project_id: int,
-) -> TicketOut:#checks for if you are in team
-    user_team_links = (
-        db.query(UserTeam)
-        .filter_by(user_id=user_id)
-        .all()
-    )
-    user_team_ids = {link.team_id for link in user_team_links}
-    if team_id not in user_team_ids:
-        raise HTTPException(status_code=403, detail="You are not a member of this team")
-    #for projects
-    user_project_links = (
-        db.query(ProjectUser)
-        .filter_by(user_id=user_id)
-        .all()
-    )
-    user_project_ids = {link.project_id for link in user_project_links}
-    if project_id not in user_project_ids:
-        raise HTTPException(status_code=403,detail="You are not a member of this project")
-
-    assigned_user_id = None
+) -> TicketOut:#checks for if you are in proj
+    project = db.get(models.Project, project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    link = (db.query(ProjectUser).filter_by(user_id=user_id, project_id=project_id).first())
+    if not link:
+        raise HTTPException(403, "You are not a member of this project")
+    assigned_user_id: Optional[int] = None
     if ticket_in.assigned_to_name:
-        assigned = (
-            db.query(models.User)
-              .filter(
-                  models.User.name == ticket_in.assigned_to_name,
-                  models.User.teams.any(UserTeam.team_id == team_id)
-              )
-              .first()
-        )
-        if not assigned:
-            raise HTTPException(status_code=404, detail="Assigned user not found in this team")
-        # cheks role in project : member или worker
-        role_link = (
-            db.query(ProjectUser)
-              .filter_by(user_id=assigned.id, project_id=project_id)
-              .first()
-        )
-        if not role_link or role_link.role not in (ProjectRole.member, ProjectRole.worker):
-            raise HTTPException(status_code=403, detail="Assigned user not in this project")
-        if not assigned.is_available:
-            raise HTTPException(status_code=400, detail="Assigned user not available")
-        assigned_user_id = assigned.id
+        user = (db.query(models.User).filter_by(name=ticket_in.assigned_to_name).first())
+        if not user:
+            raise HTTPException(404, "Assigned user not found")
+        role_link = (db.query(ProjectUser).filter_by(user_id=user.id, project_id=project_id).first())
 
-    new_ticket = models.Ticket(
+        if not role_link or role_link.role not in (
+                ProjectRole.member, ProjectRole.worker
+        ):
+            raise HTTPException(403, "Must be project member or worker")
+        if not user.is_available:
+            raise HTTPException(400, "User not available")
+        assigned_user_id = user.id
+
+    ticket = models.Ticket(
         title=ticket_in.title,
         description=ticket_in.description,
-        created_by=user_id,
         type=ticket_in.type,
+        priority=ticket_in.priority,
+        created_by=user_id,
         assigned_to=assigned_user_id,
-        team_id=team_id,
-        project_id=project_id,
-        priority=ticket_in.priority
+        project_id=project_id
     )
-    db.add(new_ticket)
+    db.add(ticket)
     db.commit()
-    db.refresh(new_ticket)
-
-    return _load_ticket_with_users(db, new_ticket.id)
+    db.refresh(ticket)
+    return _load_ticket(db, ticket.id)
 
 #------------------------------ GET LOGICS
 
-def get_ticket_by_id(db: Session, ticket_id: int, team_id: int) -> TicketOut:
+def get_ticket_by_id(db: Session, ticket_id: int, project_id: int) -> TicketOut:
     ticket = (
         db.query(models.Ticket)
           .options(
               joinedload(models.Ticket.creator),
               joinedload(models.Ticket.assignee)
           )
-          .filter(
-              models.Ticket.id == ticket_id,
-              models.Ticket.team_id == team_id
-          )
-          .first()
+        .filter_by(id=ticket_id, project_id=project_id)
+        .first()
     )
     if not ticket:
         raise HTTPException(status_code=404, detail=f"Ticket {ticket_id} not found")
     return TicketOut.model_validate(ticket)
 
-def get_all_tickets(db: Session, team_id: int) -> List[TicketOut]:
+def get_all_tickets(db: Session, project_id: int) -> List[TicketOut]:
     tickets = (
         db.query(models.Ticket)
-          .options(
-              joinedload(models.Ticket.creator),
-              joinedload(models.Ticket.assignee)
-          )
-          .filter(models.Ticket.team_id == team_id)
+          .options(joinedload(models.Ticket.creator),
+                   joinedload(models.Ticket.assignee))
+          .filter_by(project_id=project_id)
           .all()
     )
     return [TicketOut.model_validate(t) for t in tickets]
 
-def get_user_tickets(db: Session, user_id: int, team_id: int) -> List[TicketOut]:
+def get_user_tickets(db: Session, user_id, project_id: int) -> List[TicketOut]:
     tickets = (
         db.query(models.Ticket)
-          .options(
-              joinedload(models.Ticket.creator),
-              joinedload(models.Ticket.assignee)
-          )
-          .filter(
-              models.Ticket.created_by == user_id,
-              models.Ticket.team_id == team_id
-          )
+          .options(joinedload(models.Ticket.creator),
+                   joinedload(models.Ticket.assignee))
+          .filter_by(created_by=user_id, project_id=project_id)
           .all()
     )
     return [TicketOut.model_validate(t) for t in tickets]
@@ -278,14 +244,11 @@ def delete_ticket(
 
 #-------------------------------- HELPER
 
-def _load_ticket_with_users(db: Session, ticket_id: int) -> TicketOut:
+def _load_ticket(db: Session, ticket_id: int) -> TicketOut:
     ticket = (
         db.query(models.Ticket)
-          .options(
-              joinedload(models.Ticket.creator),
-              joinedload(models.Ticket.assignee)
-          )
-          .filter(models.Ticket.id == ticket_id)
-          .first()
+          .options(joinedload(models.Ticket.creator),
+                   joinedload(models.Ticket.assignee))
+          .get(ticket_id)
     )
     return TicketOut.model_validate(ticket)
