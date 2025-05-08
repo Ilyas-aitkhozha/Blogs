@@ -96,34 +96,34 @@ def update_ticket_status_by_assignee(
 
 @router.put("/tickets/{ticket_id}/feedback", response_model=TicketOut)
 def leave_feedback_by_creator(
-    team_id: int,
+    project_id: int,
     ticket_id: int,
     payload: TicketFeedbackUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    return ticket_repo.leave_feedback_by_creator(db, ticket_id, team_id, payload, current_user)
+    return ticket_repo.leave_feedback_by_creator(db, ticket_id, project_id, payload, current_user)
 
 
 @router.put("/tickets/{ticket_id}/assignee", response_model=TicketOut)
 def update_ticket_assignee(
-    team_id: int = Path(..., ge=1),
+    project_id: int = Path(..., ge=1),
     ticket_id: int = Path(..., ge=1),
     payload: TicketAssigneeUpdate = Body(...),  # содержит только `assigned_to`
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_membership(current_user, team_id)
-    return ticket_repo.update_ticket_assignee(db, ticket_id, payload, team_id)
+    _ensure_project_admin(current_user, project_id)
+    return ticket_repo.update_ticket_assignee(db, ticket_id, payload, project_id)
 
 
 @router.delete("/tickets/{ticket_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_ticket(
-    team_id: int,
+    project_id: int,
     ticket_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_membership(current_user, team_id)
-    ticket_repo.delete_ticket(db, ticket_id, team_id, current_user)
+    _ensure_project_member(current_user, project_id)
+    ticket_repo.delete_ticket(db, ticket_id, project_id, current_user)
     return
