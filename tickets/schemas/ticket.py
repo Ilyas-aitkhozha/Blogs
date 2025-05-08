@@ -31,8 +31,8 @@ class TicketOut(TicketBase):
     id: int
     type: TicketType
     status: TicketStatus
-    creator: user.ShowUser
-    assignee: Optional[user.ShowUser]
+    creator: user.UserBrief
+    assignee: Optional[user.UserBrief]
     created_at: datetime
     priority: TicketPriority
     confirmed: bool
