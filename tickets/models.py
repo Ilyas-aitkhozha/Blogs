@@ -80,7 +80,6 @@ class Ticket(Base):
     type =  Column(SqlEnum(TicketType, native_enum=False), nullable=False, default=TicketType.worker)
     creator  = relationship("User", back_populates="tickets_created", foreign_keys=[created_by])
     assignee = relationship("User", back_populates="tickets_assigned", foreign_keys=[assigned_to])
-    team     = relationship("Team", back_populates="tickets")
 
 class Project(Base):
     __tablename__ = "projects"
