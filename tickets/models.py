@@ -40,7 +40,6 @@ class Team(Base):
     user_teams = relationship("UserTeam", back_populates="team", cascade="all, delete-orphan")
     projects = relationship("Project", back_populates="team")
     members = relationship("User", secondary="user_teams", back_populates="teams", overlaps='user_teams')
-    tickets = relationship("Ticket", back_populates="team", cascade="all, delete-orphan")
 
 
 class User(Base):
