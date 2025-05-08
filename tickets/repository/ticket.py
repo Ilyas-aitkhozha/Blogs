@@ -137,29 +137,25 @@ def update_ticket_status_by_assignee(
 def leave_feedback_by_creator(
     db: Session,
     ticket_id: int,
-    team_id: int,
+    project_id: int,
     update: TicketFeedbackUpdate,
     current_user: models.User
 ) -> TicketOut:
-    ticket = db.query(models.Ticket).filter(
-        models.Ticket.id == ticket_id,
-        models.Ticket.team_id == team_id
+    ticket = db.query(models.Ticket).filter_by(
+        id=ticket_id, project_id=project_id
     ).first()
-
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-
+        raise HTTPException(404, "Ticket not found")
     if ticket.created_by != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the creator can leave feedback")
-    if ticket.status != models.TicketStatus.closed:
-        raise HTTPException(status_code=400, detail="Feedback only after closure")
+        raise HTTPException(403, "Only creator can leave feedback")
+    if ticket.status.name != "closed":
+        raise HTTPException(400, "Feedback only after close")
 
-    if update.feedback is not None:
-        ticket.feedback = update.feedback
+    ticket.feedback = update.feedback or ticket.feedback
     ticket.confirmed = update.confirmed
     ticket.updated_at = datetime.now(timezone.utc)
     db.commit()
-    return _load_ticket_with_users(db, ticket.id)
+    return _load_ticket(db, ticket.id)
 
 def update_ticket_assignee(db: Session,ticket_id: int,update: TicketAssigneeUpdate,team_id: int) -> TicketOut:
     ticket = db.query(models.Ticket).filter(
