@@ -86,22 +86,17 @@ def get_user_tickets(db: Session, user_id, project_id: int) -> List[TicketOut]:
     )
     return [TicketOut.model_validate(t) for t in tickets]
 
-def get_tickets_assigned_to_user(db: Session,current_user: models.User,team_id: int) -> List[TicketOut]:
-    if not any(ut.team_id == team_id for ut in current_user.user_teams):
-        raise HTTPException(status_code=403, detail="You are not a member of this team")
+def get_tickets_assigned_to_user(db: Session,current_user: models.User,project_id: int) -> List[TicketOut]:
+    if not any(pu.project_id == project_id for pu in current_user.project_users):
+        raise HTTPException(403, "Not a project member")
 
     tickets = (
         db.query(models.Ticket)
-          .options(
-              joinedload(models.Ticket.creator),
-              joinedload(models.Ticket.assignee)
-          )
-          .filter(
-              models.Ticket.assigned_to == current_user.id,
-              models.Ticket.team_id == team_id,
-              models.Ticket.status.in_(["open", "in_progress"])
-          )
-          .all()
+        .options(joinedload(models.Ticket.creator),
+                 joinedload(models.Ticket.assignee))
+        .filter_by(assigned_to=current_user.id, project_id=project_id)
+        .filter(models.Ticket.status.in_(["open", "in_progress"]))
+        .all()
     )
     return [TicketOut.model_validate(t) for t in tickets]
 
