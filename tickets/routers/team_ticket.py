@@ -40,25 +40,23 @@ def create_ticket(
 
 @router.get("/tickets", response_model=List[TicketOut])
 def list_tickets(
-    team_id: int,
+    project_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only admins can view all tickets.")
-    _ensure_membership(current_user, team_id)
-    return ticket_repo.get_all_tickets(db, team_id)
+    _ensure_project_admin(current_user, project_id)
+    return ticket_repo.get_all_tickets(db, project_id)
 
 
 @router.get("/tickets/{ticket_id}", response_model=TicketOut)
 def get_ticket(
-    team_id: int,
+    project_id: int,
     ticket_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_membership(current_user, team_id)
-    return ticket_repo.get_ticket_by_id(db, ticket_id, team_id)
+    _ensure_project_member(current_user, project_id)
+    return ticket_repo.get_ticket_by_id(db, ticket_id, project_id)
 
 
 @router.get("/tickets/my-created", response_model=List[TicketOut])
