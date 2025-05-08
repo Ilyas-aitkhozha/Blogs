@@ -16,22 +16,26 @@ router = APIRouter(
 )
 
 #helper
-def _ensure_membership(user: models.User, team_id: int) -> None:
-    if not any(t.id == team_id for t in user.teams):
-        raise HTTPException(status_code=403, detail="you dont have access to this team.")
+def _ensure_project_member(user, project_id: int):
+    if not any(pu.project_id == project_id for pu in user.project_users):
+        raise HTTPException(403, "Not a project member")
+
+def _ensure_project_admin(user, project_id: int):
+    if not any(pu.project_id == project_id and pu.role == ProjectRole.admin
+               for pu in user.project_users):
+        raise HTTPException(403, "Not a project admin")
 
 
 @router.post("/tickets", response_model=TicketOut, status_code=status.HTTP_201_CREATED)
 def create_ticket(
-    team_id: int = Path(..., ge=1),
+    project_id: int = Path(..., ge=1),
     payload: TicketCreate = Body(...),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    if current_user.role != "user":
-        raise HTTPException(status_code=403, detail="Only ordinary users can create tickets.")
-    _ensure_membership(current_user, team_id)
-    return ticket_repo.create_ticket(db, payload, current_user.id, team_id)
+    _ensure_project_member(current_user, project_id)
+    return ticket_repo.create_ticket(db, payload, current_user.id, project_id)
+
 
 
 @router.get("/tickets", response_model=List[TicketOut])
