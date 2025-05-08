@@ -61,12 +61,12 @@ def get_ticket(
 
 @router.get("/tickets/my-created", response_model=List[TicketOut])
 def my_created(
-    team_id: int,
+    project_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_membership(current_user, team_id)
-    return ticket_repo.get_user_tickets(db, current_user.id, team_id)
+    _ensure_project_member(current_user, project_id)
+    return ticket_repo.get_tickets_assigned_to_user(db, current_user, project_id)
 
 
 @router.get("/tickets/my-assigned", response_model=List[TicketOut])
@@ -86,13 +86,13 @@ def get_priorities():
 
 @router.put("/tickets/{ticket_id}/status", response_model=TicketOut)
 def update_ticket_status_by_assignee(
-    team_id: int,
+    project_id: int,
     ticket_id: int,
     payload: TicketStatusUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    return ticket_repo.update_ticket_status_by_assignee(db, ticket_id, team_id, payload, current_user)
+    return ticket_repo.update_ticket_status_by_assignee(db, ticket_id, project_id, payload, current_user)
 
 @router.put("/tickets/{ticket_id}/feedback", response_model=TicketOut)
 def leave_feedback_by_creator(
