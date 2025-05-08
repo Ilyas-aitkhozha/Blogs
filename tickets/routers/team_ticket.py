@@ -11,7 +11,7 @@ from ..enums import *
 
 logger = logging.getLogger(__name__)
 router = APIRouter(
-    prefix="/teams/{team_id}",
+    prefix="/projects/{project_id}",
     tags=["Team Tickets"],
 )
 
