@@ -111,35 +111,28 @@ ALLOWED_STATUS_TRANSITIONS = {
 def update_ticket_status_by_assignee(
     db: Session,
     ticket_id: int,
-    team_id: int,
+    project_id: int,
     update: TicketStatusUpdate,
     current_user: models.User
 ) -> TicketOut:
-    ticket = db.query(models.Ticket).filter(
-        models.Ticket.id == ticket_id,
-        models.Ticket.team_id == team_id
+    ticket = db.query(models.Ticket).filter_by(
+        id=ticket_id, project_id=project_id
     ).first()
-
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-
+        raise HTTPException(404, "Ticket not found")
     if ticket.assigned_to != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the assignee can update the status")
+        raise HTTPException(403, "Only assignee can update")
 
-    curr = ticket.status.value
-    nxt = update.status.value
+    curr, nxt = ticket.status.value, update.status.value
     if nxt not in ALLOWED_STATUS_TRANSITIONS[curr]:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot transition from {curr} to {nxt}. Allowed: {ALLOWED_STATUS_TRANSITIONS[curr]}"
-        )
+        raise HTTPException(400, f"Cannot go from {curr} to {nxt}")
 
     ticket.status = update.status
-    if update.status == models.TicketStatus.closed:
+    if update.status.name == "closed":
         ticket.closed_at = datetime.now(timezone.utc)
     ticket.updated_at = datetime.now(timezone.utc)
     db.commit()
-    return _load_ticket_with_users(db, ticket.id)
+    return _load_ticket(db, ticket.id)
 
 def leave_feedback_by_creator(
     db: Session,
