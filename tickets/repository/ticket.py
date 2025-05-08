@@ -157,71 +157,63 @@ def leave_feedback_by_creator(
     db.commit()
     return _load_ticket(db, ticket.id)
 
-def update_ticket_assignee(db: Session,ticket_id: int,update: TicketAssigneeUpdate,team_id: int) -> TicketOut:
-    ticket = db.query(models.Ticket).filter(
-        models.Ticket.id == ticket_id,
-        models.Ticket.team_id == team_id
+def update_ticket_assignee(db: Session,ticket_id: int,update: TicketAssigneeUpdate,project_id: int) -> TicketOut:
+    ticket = db.query(models.Ticket).filter_by(
+        id=ticket_id, project_id=project_id
     ).first()
-
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-
-    # checkign if admin?
+        raise HTTPException(404, "Ticket not found")
+    # only project-admin may reassign
     is_admin = (
         db.query(ProjectUser)
-          .filter_by(
-              user_id=update.assigned_to,
-              project_id=ticket.project_id,
-              role=ProjectRole.admin.value
-          )
-          .first()
+        .filter_by(
+            user_id=update.assigned_to,
+            project_id=project_id,
+            role=ProjectRole.admin
+        )
+        .first()
     )
     if not is_admin:
-        raise HTTPException(status_code=403, detail="Only project admin can reassign tickets")
+        raise HTTPException(403, "Only project admin can reassign")
 
-    new_user = (
-        db.query(models.User)
-          .filter(
-              models.User.id == update.assigned_to,
-              models.User.teams.any(UserTeam.team_id == team_id)
-          )
-          .first()
+    role_link = (
+        db.query(ProjectUser)
+        .filter_by(user_id=update.assigned_to, project_id=project_id)
+        .first()
     )
-    if not new_user:
-        raise HTTPException(status_code=404, detail="Assigned user not in this team")
-    if not new_user.is_available:
-        raise HTTPException(status_code=400, detail="Assigned user not available")
+    if not role_link or role_link.role not in (
+            ProjectRole.member, ProjectRole.worker
+    ):
+        raise HTTPException(403, "Must be member or worker")
+
+    user = db.get(models.User, update.assigned_to)
+    if not user or not user.is_available:
+        raise HTTPException(400, "User not available")
 
     ticket.assigned_to = update.assigned_to
     db.commit()
-    return _load_ticket_with_users(db, ticket.id)
+    return _load_ticket(db, ticket.id)
 
 #-------------------------------- DELETE TICKET
 def delete_ticket(
     db: Session,
     ticket_id: int,
-    team_id: int,
+    project_id: int,
     current_user: models.User,
 ) -> None:
-    ticket = (
-        db.query(models.Ticket)
-          .filter(
-              models.Ticket.id == ticket_id,
-              models.Ticket.team_id == team_id
-          )
-          .first()
-    )
+    ticket = db.query(models.Ticket).filter_by(
+        id=ticket_id, project_id=project_id
+    ).first()
     if not ticket:
-        raise HTTPException(status_code=404, detail=f"Ticket {ticket_id} not found")
+        raise HTTPException(404, "Ticket not found")
 
-    # only creator or admin can delete
     is_creator = ticket.created_by == current_user.id
-    is_proj_admin = any(
-        pu.project_id == ticket.project_id and pu.role is ProjectRole.admin
+    is_admin = any(
+        pu.project_id == project_id and pu.role == ProjectRole.admin
         for pu in current_user.project_users
     )
-    if not (is_creator or is_proj_admin):
-        raise HTTPException(status_code=403, detail="Not permitted to delete this ticket")
+    if not (is_creator or is_admin):
+        raise HTTPException(403, "Not permitted")
 
     db.delete(ticket)
     db.commit()
