@@ -71,11 +71,11 @@ def my_created(
 
 @router.get("/tickets/my-assigned", response_model=List[TicketOut])
 def my_assigned(
-    team_id: int,
+    project_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    _ensure_membership(current_user, team_id)
+    _ensure_project_member(current_user, project_id)
     return ticket_repo.get_tickets_assigned_to_user(db, current_user, team_id)
 
 @router.get("/tickets/priorities", response_model=list[str])
