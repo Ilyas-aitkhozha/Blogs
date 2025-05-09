@@ -26,7 +26,7 @@ class TicketFeedbackUpdate(BaseModel):
 
 class TicketAssigneeUpdate(BaseModel):
     assigned_to: int
-
+#we can create tickets only in projects, so i removed team_id
 class TicketOut(TicketBase):
     id: int
     type: TicketType
