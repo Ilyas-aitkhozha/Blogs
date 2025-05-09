@@ -87,12 +87,24 @@ class Project(Base):
     description = Column(Text)
     team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
 
     team = relationship("Team", back_populates="projects")
     creator = relationship("User")
     project_users = relationship("ProjectUser", back_populates="project", cascade="all, delete-orphan")
     tickets = relationship("Ticket", back_populates="project", cascade="all, delete-orphan")
+
+    worker_team_links = relationship(
+        "ProjectWorkerTeam",
+        back_populates="project",
+        cascade="all, delete-orphan",
+    )
+    worker_teams = relationship(
+        "Team",
+        secondary="project_worker_teams",
+        back_populates="worker_projects",
+    )
+
 #can be assigned to some project (or may not if user wants it so)
 class ProjectWorkerTeam(Base):
     __tablename__ = "project_worker_teams"
