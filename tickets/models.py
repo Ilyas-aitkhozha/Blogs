@@ -40,6 +40,16 @@ class Team(Base):
     user_teams = relationship("UserTeam", back_populates="team", cascade="all, delete-orphan")
     projects = relationship("Project", back_populates="team")
     members = relationship("User", secondary="user_teams", back_populates="teams", overlaps='user_teams')
+    worker_project_links = relationship(
+        "ProjectWorkerTeam",
+        back_populates="team",
+        cascade="all, delete-orphan",
+    )
+    worker_projects = relationship(
+        "Project",
+        secondary="project_worker_teams",
+        back_populates="worker_teams",
+    )
 
 
 class User(Base):
