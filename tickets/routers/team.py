@@ -21,7 +21,7 @@ def create_team(payload: TeamCreate,
                 current_user: models.User = Depends(get_current_user)):
     return team_repo.create_team(db, current_user, payload)
 
-
+# we can join team by code, later i will give option to invite users
 @router.post("/join", response_model=TeamOut)
 def join_team(payload: JoinTeam,
               db: Session = Depends(get_db),
