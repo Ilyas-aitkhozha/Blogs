@@ -42,7 +42,7 @@ class UserAvailabilityOut(BaseModel):
     id: int
     is_available: bool
     model_config = ConfigDict(from_attributes=True)
-
+#schema for proj only
 class UserInTeamWithProjects(BaseModel):
     user: UserBrief
     role: TeamRole
