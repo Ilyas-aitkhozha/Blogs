@@ -76,10 +76,12 @@ def my_assigned(
     current_user: models.User = Depends(get_current_user),
 ):
     _ensure_project_member(current_user, project_id)
-    return ticket_repo.get_tickets_assigned_to_user(db, current_user, team_id)
+    return ticket_repo.get_tickets_assigned_to_user(db, current_user, project_id)
 
 @router.get("/tickets/priorities", response_model=list[str])
-def get_priorities():
+def get_priorities(
+        project_id:int
+):
     return [p.value for p in TicketPriority]
 
 
