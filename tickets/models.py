@@ -93,6 +93,14 @@ class Project(Base):
     creator = relationship("User")
     project_users = relationship("ProjectUser", back_populates="project", cascade="all, delete-orphan")
     tickets = relationship("Ticket", back_populates="project", cascade="all, delete-orphan")
+#can be assigned to some project (or may not if user wants it so)
+class ProjectWorkerTeam(Base):
+    __tablename__ = "project_worker_teams"
+    project_id = Column(Integer,ForeignKey("projects.id", ondelete="CASCADE"),primary_key=True,)
+    team_id = Column(Integer,ForeignKey("teams.id", ondelete="CASCADE"),primary_key=True,)
+    assigned_at = Column(DateTime,default=lambda: datetime.now(timezone.utc),nullable=False)
+    project = relationship("Project",back_populates="worker_team_links")
+    team = relationship("Team",back_populates="worker_project_links")
 
 #db for chat, session
 class ChatMessage(Base):
