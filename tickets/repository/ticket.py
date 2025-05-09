@@ -101,7 +101,7 @@ def get_tickets_assigned_to_user(db: Session,current_user: models.User,project_i
     return [TicketOut.model_validate(t) for t in tickets]
 
 #-------------------------------- UPDATE LOGIC
-
+#only can change it step by step
 ALLOWED_STATUS_TRANSITIONS = {
     "open": ["in_progress"],
     "in_progress": ["closed"],
