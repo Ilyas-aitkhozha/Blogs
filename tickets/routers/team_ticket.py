@@ -95,7 +95,7 @@ def update_ticket_status_by_assignee(
     current_user: models.User = Depends(get_current_user),
 ):
     return ticket_repo.update_ticket_status_by_assignee(db, ticket_id, project_id, payload, current_user)
-
+#feedback can be used only after tickets is closed
 @router.put("/tickets/{ticket_id}/feedback", response_model=TicketOut)
 def leave_feedback_by_creator(
     project_id: int,
@@ -106,7 +106,7 @@ def leave_feedback_by_creator(
 ):
     return ticket_repo.leave_feedback_by_creator(db, ticket_id, project_id, payload, current_user)
 
-
+#only the creator of ticket can do it
 @router.put("/tickets/{ticket_id}/assignee", response_model=TicketOut)
 def update_ticket_assignee(
     project_id: int = Path(..., ge=1),
