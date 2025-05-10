@@ -22,3 +22,13 @@ def assign_team(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return link
+
+@router.get("/",response_model=ProjectWorkerTeamRead)
+def read_team(
+    project_id: int,
+    db: Session = Depends(get_db)
+) -> ProjectWorkerTeamRead:
+    link = repo.get_worker_team(db, project_id)
+    if not link:
+        raise HTTPException(status_code=404, detail="No worker-team assigned to this project")
+    return link
