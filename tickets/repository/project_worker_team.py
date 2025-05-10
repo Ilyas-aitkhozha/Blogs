@@ -43,9 +43,18 @@ def get_worker_team(db: Session, project_id: int) -> ProjectWorkerTeam | None:
     return db.query(ProjectWorkerTeam)\
              .filter_by(project_id=project_id)\
              .first()
-
+#team that doenst have any projects assigned to them
 def list_available_worker_teams(db: Session) -> list[Team]:
     assigned = db.query(ProjectWorkerTeam.team_id).distinct()
     return db.query(Team)\
              .filter(~Team.id.in_(assigned))\
              .all()
+
+def get_available_workers_by_project(db: Session, project_id: int) -> list[User]:
+    link = get_worker_team(db, project_id)
+    if not link:
+        return []
+    return (db.query(User).join(UserTeam, User.id == UserTeam.user_id).
+            filter(
+                 UserTeam.team_id == link.team_id,
+                 User.is_available.is_(True)).all())
