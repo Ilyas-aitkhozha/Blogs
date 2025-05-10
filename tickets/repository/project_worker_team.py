@@ -44,3 +44,8 @@ def get_worker_team(db: Session, project_id: int) -> ProjectWorkerTeam | None:
              .filter_by(project_id=project_id)\
              .first()
 
+def list_available_worker_teams(db: Session) -> list[Team]:
+    assigned = db.query(ProjectWorkerTeam.team_id).distinct()
+    return db.query(Team)\
+             .filter(~Team.id.in_(assigned))\
+             .all()
