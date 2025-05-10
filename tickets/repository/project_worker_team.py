@@ -15,3 +15,15 @@ def assign_worker_team(db: Session, project_id: int, team_id: int) -> ProjectWor
     db.commit()
     db.refresh(link)
     return link
+
+def update_worker_team(db: Session, project_id: int, new_team_id: int) -> ProjectWorkerTeam:
+    link = db.query(ProjectWorkerTeam)\
+             .filter_by(project_id=project_id)\
+             .first()
+    if not link:
+        raise ValueError("No existing worker team to update")
+    link.team_id = new_team_id
+    link.assigned_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(link)
+    return link
