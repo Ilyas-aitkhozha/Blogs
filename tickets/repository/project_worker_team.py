@@ -27,3 +27,9 @@ def update_worker_team(db: Session, project_id: int, new_team_id: int) -> Projec
     db.commit()
     db.refresh(link)
     return link
+
+def remove_worker_team(db:Session, project_id: int):
+    link = db.query(ProjectWorkerTeam).filter_by(project_id=project_id).first()
+    if link:
+        db.delete(link)
+        db.commit()
