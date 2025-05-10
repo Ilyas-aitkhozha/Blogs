@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
+from typing import List
 from tickets.models import ProjectWorkerTeam, Project, Team, User, UserTeam
 #only 1 workers team to one project
 def assign_worker_team(db: Session, project_id: int, team_id: int) -> ProjectWorkerTeam:
@@ -33,3 +34,13 @@ def remove_worker_team(db:Session, project_id: int):
     if link:
         db.delete(link)
         db.commit()
+
+def list_unassigned_projects(db: Session) -> list[Project]:
+    return db.query(Project).(outerjoin(ProjectWorkerTeam, Project.id == ProjectWorkerTeam.project_id).
+               filter(ProjectWorkerTeam.project_id == None).all())
+
+def get_worker_team(db: Session, project_id: int) -> ProjectWorkerTeam | None:
+    return db.query(ProjectWorkerTeam)\
+             .filter_by(project_id=project_id)\
+             .first()
+
