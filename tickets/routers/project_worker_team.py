@@ -60,3 +60,21 @@ def available_workers(
     db: Session = Depends(get_db)
 ) -> List[UserBrief]:
     return repo.get_available_workers_by_project(db, project_id)
+
+@router.get(
+    "/available",
+    response_model=List[TeamBriefInfo]
+)
+def list_free_teams(
+    db: Session = Depends(get_db)
+) -> List[TeamBriefInfo]:
+    return repo.list_available_worker_teams(db)
+
+@router.get(
+    "/unassigned-projects",
+    response_model=List[ProjectBrief]
+)
+def list_projects_needing_team(
+    db: Session = Depends(get_db)
+) -> List[ProjectBrief]:
+    return repo.list_unassigned_projects(db)
