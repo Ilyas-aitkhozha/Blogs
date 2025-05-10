@@ -32,3 +32,15 @@ def read_team(
     if not link:
         raise HTTPException(status_code=404, detail="No worker-team assigned to this project")
     return link
+
+@router.patch("/",response_model=ProjectWorkerTeamRead)
+def reassign_team(
+    project_id: int,
+    payload: ProjectWorkerTeamBase,
+    db: Session = Depends(get_db)
+) -> ProjectWorkerTeamRead:
+    try:
+        link = repo.update_worker_team(db, project_id, payload.team_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return link
