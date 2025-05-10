@@ -25,3 +25,10 @@ class ProjectMembership(BaseModel):
     role: ProjectRole
     joined_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+class ProjectBrief(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
