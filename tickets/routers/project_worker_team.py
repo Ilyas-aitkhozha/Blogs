@@ -44,3 +44,12 @@ def reassign_team(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return link
+
+
+@router.delete("/",status_code=status.HTTP_204_NO_CONTENT)
+def unassign_team(
+    project_id: int,
+    db: Session = Depends(get_db)
+) -> Response:
+    repo.remove_worker_team(db, project_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
