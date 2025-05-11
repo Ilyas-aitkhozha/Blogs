@@ -97,16 +97,16 @@ class Ticket(Base):
     updated_at     = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     type           = Column(SqlEnum(TicketType, native_enum=False), nullable=False, default=TicketType.worker)
-
     worker_team_id = Column(
         Integer,
         ForeignKey("worker_teams.id", ondelete="SET NULL"),
         nullable=True,
     )
-    worker_team    = relationship(
+    worker_team = relationship(
         "WorkerTeam",
         back_populates="tickets",
-        foreign_keys=["WorkerTeam.id"]
+        # ← use the actual Column object, not a string!
+        foreign_keys=[worker_team_id],
     )
 
     creator        = relationship("User", back_populates="tickets_created", foreign_keys=[created_by])
