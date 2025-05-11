@@ -15,7 +15,9 @@ class TicketBase(BaseModel):
 class TicketCreate(TicketBase):
     type: TicketType
     assigned_to_name: Optional[str] = None
+    worker_team_id: Optional[int] = None
     priority: Optional[TicketPriority] = TicketPriority.medium
+    model_config = ConfigDict(from_attributes=True)
 
 class TicketStatusUpdate(BaseModel):
     status: TicketStatus
@@ -33,6 +35,7 @@ class TicketOut(TicketBase):
     status: TicketStatus
     creator: user.UserBrief
     assignee: Optional[user.UserBrief]
+    worker_team: Optional[WorkerTeamRead]
     created_at: datetime
     priority: TicketPriority
     confirmed: bool

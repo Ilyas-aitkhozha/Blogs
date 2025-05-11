@@ -2,25 +2,16 @@ from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import List, Optional
 
-# brief scheme
-class TeamBrief(BaseModel):
-    id: int
+class WorkerTeamBase(BaseModel):
     name: str
-    code: Optional[str]
     model_config = ConfigDict(from_attributes=True)
 
-class ProjectWorkerTeamBase(BaseModel):
-    project_id: int
-    team_id: int
-    assigned_at: datetime
-    model_config = ConfigDict(from_attributes=True)
+class WorkerTeamCreate(WorkerTeamBase):
+    pass
 
-class ProjectWorkerTeamRead(ProjectWorkerTeamBase):
-    team: TeamBrief
-
-class ProjectWithWorkers(BaseModel):
+class WorkerTeamRead(WorkerTeamBase):
     id: int
-    name: str
-    worker_team_links: List[ProjectWorkerTeamRead]
-    worker_teams: List[TeamBrief]
+    created_at: datetime
+    # список проектов, которые обслуживает команда
+    projects: List[int] = []  # можно заменить на List[ProjectBrief] при наличии
     model_config = ConfigDict(from_attributes=True)
