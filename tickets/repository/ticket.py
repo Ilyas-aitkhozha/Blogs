@@ -4,8 +4,8 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 from tickets import models
 from tickets.models import UserTeam, ProjectUser
-from tickets.schemas.ticket import TicketCreate, TicketOut, TicketStatusUpdate,TicketAssigneeUpdate, TicketFeedbackUpdate
-from tickets.enums import ProjectRole
+from tickets.schemas.ticket import TicketCreate, TicketOut, TicketStatusUpdate, TicketAssigneeUpdate, TicketFeedbackUpdate
+from tickets.enums import ProjectRole, TicketType, TicketStatus
 
 #--------------------------------------- CREATE
 
@@ -14,20 +14,28 @@ def create_ticket(
     ticket_in: TicketCreate,
     user_id: int,
     project_id: int,
-) -> TicketOut:#checks for if you are in proj
+) -> TicketOut:  # checks for if you are in proj
     project = db.get(models.Project, project_id)
     if not project:
         raise HTTPException(404, "Project not found")
-    link = (db.query(ProjectUser).filter_by(user_id=user_id, project_id=project_id).first())
+    link = (
+        db.query(ProjectUser)
+          .filter_by(user_id=user_id, project_id=project_id)
+          .first()
+    )
     if not link:
         raise HTTPException(403, "You are not a member of this project")
+
     assigned_user_id: Optional[int] = None
-    if ticket_in.assigned_to_name:
-        user = (db.query(models.User).filter_by(name=ticket_in.assigned_to_name).first())
+    if getattr(ticket_in, 'assigned_to', None) is not None:
+        user = db.get(models.User, ticket_in.assigned_to)
         if not user:
             raise HTTPException(404, "Assigned user not found")
-        role_link = (db.query(ProjectUser).filter_by(user_id=user.id, project_id=project_id).first())
-
+        role_link = (
+            db.query(ProjectUser)
+              .filter_by(user_id=user.id, project_id=project_id)
+              .first()
+        )
         if not role_link or role_link.role not in (
                 ProjectRole.member, ProjectRole.worker
         ):
@@ -36,6 +44,18 @@ def create_ticket(
             raise HTTPException(400, "User not available")
         assigned_user_id = user.id
 
+    assigned_worker_team_id: Optional[int] = None
+    if getattr(ticket_in, 'worker_team_id', None) is not None:
+        # клиент указал рабочую команду вручную
+        if project.worker_team_id != ticket_in.worker_team_id:
+            raise HTTPException(400, "Worker team not assigned to this project")
+        assigned_worker_team_id = ticket_in.worker_team_id
+    elif ticket_in.type == TicketType.worker:
+        # автоматически назначаем на рабочую команду проекта
+        if not project.worker_team_id:
+            raise HTTPException(400, "No worker team assigned to project")
+        assigned_worker_team_id = project.worker_team_id
+
     ticket = models.Ticket(
         title=ticket_in.title,
         description=ticket_in.description,
@@ -43,7 +63,8 @@ def create_ticket(
         priority=ticket_in.priority,
         created_by=user_id,
         assigned_to=assigned_user_id,
-        project_id=project_id
+        worker_team_id=assigned_worker_team_id,
+        project_id=project_id,
     )
     db.add(ticket)
     db.commit()
@@ -57,10 +78,11 @@ def get_ticket_by_id(db: Session, ticket_id: int, project_id: int) -> TicketOut:
         db.query(models.Ticket)
           .options(
               joinedload(models.Ticket.creator),
-              joinedload(models.Ticket.assignee)
+              joinedload(models.Ticket.assignee),
+              joinedload(models.Ticket.worker_team),
           )
-        .filter_by(id=ticket_id, project_id=project_id)
-        .first()
+          .filter_by(id=ticket_id, project_id=project_id)
+          .first()
     )
     if not ticket:
         raise HTTPException(status_code=404, detail=f"Ticket {ticket_id} not found")
@@ -69,8 +91,11 @@ def get_ticket_by_id(db: Session, ticket_id: int, project_id: int) -> TicketOut:
 def get_all_tickets(db: Session, project_id: int) -> List[TicketOut]:
     tickets = (
         db.query(models.Ticket)
-          .options(joinedload(models.Ticket.creator),
-                   joinedload(models.Ticket.assignee))
+          .options(
+              joinedload(models.Ticket.creator),
+              joinedload(models.Ticket.assignee),
+              joinedload(models.Ticket.worker_team),
+          )
           .filter_by(project_id=project_id)
           .all()
     )
@@ -79,29 +104,38 @@ def get_all_tickets(db: Session, project_id: int) -> List[TicketOut]:
 def get_user_tickets(db: Session, user_id, project_id: int) -> List[TicketOut]:
     tickets = (
         db.query(models.Ticket)
-          .options(joinedload(models.Ticket.creator),
-                   joinedload(models.Ticket.assignee))
+          .options(
+              joinedload(models.Ticket.creator),
+              joinedload(models.Ticket.assignee),
+              joinedload(models.Ticket.worker_team),
+          )
           .filter_by(created_by=user_id, project_id=project_id)
           .all()
     )
     return [TicketOut.model_validate(t) for t in tickets]
 
-def get_tickets_assigned_to_user(db: Session,current_user: models.User,project_id: int) -> List[TicketOut]:
+def get_tickets_assigned_to_user(
+    db: Session, current_user: models.User, project_id: int
+) -> List[TicketOut]:
     if not any(pu.project_id == project_id for pu in current_user.project_users):
         raise HTTPException(403, "Not a project member")
 
     tickets = (
         db.query(models.Ticket)
-        .options(joinedload(models.Ticket.creator),
-                 joinedload(models.Ticket.assignee))
-        .filter_by(assigned_to=current_user.id, project_id=project_id)
-        .filter(models.Ticket.status.in_(["open", "in_progress"]))
-        .all()
+          .options(
+              joinedload(models.Ticket.creator),
+              joinedload(models.Ticket.assignee),
+              joinedload(models.Ticket.worker_team),
+          )
+          .filter_by(assigned_to=current_user.id, project_id=project_id)
+          .filter(models.Ticket.status.in_([TicketStatus.open, TicketStatus.in_progress]))
+          .all()
     )
     return [TicketOut.model_validate(t) for t in tickets]
 
 #-------------------------------- UPDATE LOGIC
-#only can change it step by step
+
+# only can change it step by step
 ALLOWED_STATUS_TRANSITIONS = {
     "open": ["in_progress"],
     "in_progress": ["closed"],
@@ -115,9 +149,11 @@ def update_ticket_status_by_assignee(
     update: TicketStatusUpdate,
     current_user: models.User
 ) -> TicketOut:
-    ticket = db.query(models.Ticket).filter_by(
-        id=ticket_id, project_id=project_id
-    ).first()
+    ticket = (
+        db.query(models.Ticket)
+          .filter_by(id=ticket_id, project_id=project_id)
+          .first()
+    )
     if not ticket:
         raise HTTPException(404, "Ticket not found")
     if ticket.assigned_to != current_user.id:
@@ -141,9 +177,11 @@ def leave_feedback_by_creator(
     update: TicketFeedbackUpdate,
     current_user: models.User
 ) -> TicketOut:
-    ticket = db.query(models.Ticket).filter_by(
-        id=ticket_id, project_id=project_id
-    ).first()
+    ticket = (
+        db.query(models.Ticket)
+          .filter_by(id=ticket_id, project_id=project_id)
+          .first()
+    )
     if not ticket:
         raise HTTPException(404, "Ticket not found")
     if ticket.created_by != current_user.id:
@@ -157,29 +195,36 @@ def leave_feedback_by_creator(
     db.commit()
     return _load_ticket(db, ticket.id)
 
-def update_ticket_assignee(db: Session,ticket_id: int,update: TicketAssigneeUpdate,project_id: int) -> TicketOut:
-    ticket = db.query(models.Ticket).filter_by(
-        id=ticket_id, project_id=project_id
-    ).first()
+def update_ticket_assignee(
+    db: Session,
+    ticket_id: int,
+    update: TicketAssigneeUpdate,
+    project_id: int
+) -> TicketOut:
+    ticket = (
+        db.query(models.Ticket)
+          .filter_by(id=ticket_id, project_id=project_id)
+          .first()
+    )
     if not ticket:
         raise HTTPException(404, "Ticket not found")
     # only project-admin may reassign
     is_admin = (
         db.query(ProjectUser)
-        .filter_by(
-            user_id=update.assigned_to,
-            project_id=project_id,
-            role=ProjectRole.admin
-        )
-        .first()
+          .filter_by(
+              user_id=update.assigned_to,
+              project_id=project_id,
+              role=ProjectRole.admin
+          )
+          .first()
     )
     if not is_admin:
         raise HTTPException(403, "Only project admin can reassign")
 
     role_link = (
         db.query(ProjectUser)
-        .filter_by(user_id=update.assigned_to, project_id=project_id)
-        .first()
+          .filter_by(user_id=update.assigned_to, project_id=project_id)
+          .first()
     )
     if not role_link or role_link.role not in (
             ProjectRole.member, ProjectRole.worker
@@ -201,9 +246,11 @@ def delete_ticket(
     project_id: int,
     current_user: models.User,
 ) -> None:
-    ticket = db.query(models.Ticket).filter_by(
-        id=ticket_id, project_id=project_id
-    ).first()
+    ticket = (
+        db.query(models.Ticket)
+          .filter_by(id=ticket_id, project_id=project_id)
+          .first()
+    )
     if not ticket:
         raise HTTPException(404, "Ticket not found")
 
@@ -219,12 +266,14 @@ def delete_ticket(
     db.commit()
 
 #-------------------------------- HELPER
-
 def _load_ticket(db: Session, ticket_id: int) -> TicketOut:
     ticket = (
         db.query(models.Ticket)
-          .options(joinedload(models.Ticket.creator),
-                   joinedload(models.Ticket.assignee))
+          .options(
+              joinedload(models.Ticket.creator),
+              joinedload(models.Ticket.assignee),
+              joinedload(models.Ticket.worker_team),
+          )
           .get(ticket_id)
     )
     return TicketOut.model_validate(ticket)
