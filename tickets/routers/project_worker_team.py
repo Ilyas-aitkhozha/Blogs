@@ -1,80 +1,107 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Path
 from sqlalchemy.orm import Session
 from typing import List
 
 from tickets.database import get_db
-import tickets.repository.project_worker_team as repo
+from tickets.routers.dependencies import require_project_admin, require_project_member
 from tickets.schemas.project_worker_team import ProjectWorkerTeamBase, ProjectWorkerTeamRead
 from tickets.schemas.team import TeamBriefInfo
 from tickets.schemas.project import ProjectBrief
 from tickets.schemas.user import UserBrief
 
+import tickets.repository.project_worker_team as repo
+
 router = APIRouter(prefix="/projects/{project_id}/worker-team", tags=["Worker Teams"])
 
-@router.post("/",response_model=ProjectWorkerTeamRead,status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=ProjectWorkerTeamRead,
+    status_code=status.HTTP_201_CREATED,
+)
 def assign_team(
-    project_id: int,
-    payload: ProjectWorkerTeamBase,
-    db: Session = Depends(get_db)
+    project_id: int = Path(..., ge=1),
+    payload: ProjectWorkerTeamBase = ...,
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_project_admin),
 ) -> ProjectWorkerTeamRead:
     try:
-        link = repo.assign_worker_team(db, project_id, payload.team_id)
+        raw = repo.assign_worker_team_to_project(db, project_id, payload.team_id)
+        return ProjectWorkerTeamRead.model_validate(raw)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return link
 
-@router.get("/",response_model=ProjectWorkerTeamRead)
+@router.get(
+    "/",
+    response_model=ProjectWorkerTeamRead,
+)
 def read_team(
-    project_id: int,
-    db: Session = Depends(get_db)
+    project_id: int = Path(..., ge=1),
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_project_member),
 ) -> ProjectWorkerTeamRead:
-    link = repo.get_worker_team(db, project_id)
-    if not link:
+    raw = repo.get_worker_team_of_project(db, project_id)
+    if not raw:
         raise HTTPException(status_code=404, detail="No worker-team assigned to this project")
-    return link
+    return ProjectWorkerTeamRead.model_validate(raw)
 
-@router.patch("/",response_model=ProjectWorkerTeamRead)
+@router.patch(
+    "/",
+    response_model=ProjectWorkerTeamRead,
+)
 def reassign_team(
-    project_id: int,
-    payload: ProjectWorkerTeamBase,
-    db: Session = Depends(get_db)
+    project_id: int = Path(..., ge=1),
+    payload: ProjectWorkerTeamBase = ...,
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_project_admin),
 ) -> ProjectWorkerTeamRead:
     try:
-        link = repo.update_worker_team(db, project_id, payload.team_id)
+        raw = repo.update_worker_team_for_project(db, project_id, payload.team_id)
+        return ProjectWorkerTeamRead.model_validate(raw)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return link
 
-
-@router.delete("/",status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 def unassign_team(
-    project_id: int,
-    db: Session = Depends(get_db)
+    project_id: int = Path(..., ge=1),
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_project_admin),
 ) -> Response:
-    repo.remove_worker_team(db, project_id)
+    repo.remove_worker_team_from_project(db, project_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-@router.get("/available-workers",response_model=List[UserBrief])
+@router.get(
+    "/available-workers",
+    response_model=List[UserBrief],
+)
 def available_workers(
-    project_id: int,
-    db: Session = Depends(get_db)
+    project_id: int = Path(..., ge=1),
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_project_member),
 ) -> List[UserBrief]:
-    return repo.get_available_workers_by_project(db, project_id)
+    raws = repo.get_available_workers_by_project(db, project_id)
+    return [UserBrief.model_validate(u) for u in raws]
 
 @router.get(
     "/available",
-    response_model=List[TeamBriefInfo]
+    response_model=List[TeamBriefInfo],
 )
 def list_free_teams(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_project_member),
 ) -> List[TeamBriefInfo]:
-    return repo.list_available_worker_teams(db)
+    raws = repo.list_worker_teams(db)
+    return [TeamBriefInfo.model_validate(t) for t in raws]
 
 @router.get(
     "/unassigned-projects",
-    response_model=List[ProjectBrief]
+    response_model=List[ProjectBrief],
 )
 def list_projects_needing_team(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_project_admin),
 ) -> List[ProjectBrief]:
-    return repo.list_unassigned_projects(db)
+    raws = repo.list_projects_without_worker_team(db)
+    return [ProjectBrief.model_validate(p) for p in raws]
