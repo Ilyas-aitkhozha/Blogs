@@ -5,7 +5,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from . import models
 from .database import engine
-from .routers import team_ticket, team_user, chat_bot, auth, team, analytics, project, project_worker_team
+from .routers import team_ticket, team_user, chat_bot, auth, team, analytics, project, project_worker_team, worker_team
 
 load_dotenv()
 
@@ -45,6 +45,7 @@ app.include_router(auth.router)
 app.include_router(analytics.router)
 app.include_router(project.router)
 app.include_router(project_worker_team.router)
+app.include_router(worker_team.router)
 @app.get("/ping")
 def ping():
     return {"message": "pong"}
