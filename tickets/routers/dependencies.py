@@ -1,8 +1,9 @@
 from fastapi import Depends, HTTPException, Path, status
 from sqlalchemy.orm import Session
+
 from tickets.database import get_db
 from tickets.oauth2 import get_current_user
-from tickets.models import User, UserTeam, ProjectUser
+from tickets.models import User, UserTeam, ProjectUser, Project
 from tickets.enums import TeamRole, ProjectRole
 
 
@@ -49,10 +50,18 @@ async def require_team_admin(
 
 
 async def require_project_member(
+    team_id: int = Path(..., ge=1),
     project_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_authenticated),
 ) -> User:
+    project = db.query(Project).filter_by(id=project_id, team_id=team_id).first()
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found in this team",
+        )
+
     link = (
         db.query(ProjectUser)
           .filter_by(project_id=project_id, user_id=current_user.id)
@@ -67,6 +76,7 @@ async def require_project_member(
 
 
 async def require_project_admin(
+    team_id: int = Path(..., ge=1),
     project_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_project_member),
@@ -85,13 +95,14 @@ async def require_project_admin(
 
 
 async def require_project_worker(
+    team_id: int = Path(..., ge=1),
     project_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_project_member),
 ) -> User:
     link = (
         db.query(ProjectUser)
-          .filter(project_id=project_id, user_id=current_user.id)
+          .filter_by(project_id=project_id, user_id=current_user.id)
           .first()
     )
     if link.role != ProjectRole.worker.value:
