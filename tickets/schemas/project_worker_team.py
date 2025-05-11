@@ -1,11 +1,11 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from tickets.schemas.team import TeamBriefInfo
 
 class ProjectWorkerTeamBase(BaseModel):
-    team_id: int
-    assigned_at: datetime
+    name: str
+    description: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 class ProjectWorkerTeamRead(ProjectWorkerTeamBase):
