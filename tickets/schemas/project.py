@@ -10,6 +10,9 @@ class ProjectBase(BaseModel):
 class ProjectCreate(ProjectBase):
     pass
 
+class ProjectUpdateWorker(BaseModel):
+    worker_team_id: Optional[int]
+    model_config = ConfigDict(from_attributes=True)
 class ProjectOut(BaseModel):
     id: int
     name: str
