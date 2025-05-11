@@ -125,7 +125,6 @@ class Project(Base):
         uselist=False,
     )
 
-#сущность рабочих команд, обслуживающих проекты
 class WorkerTeam(Base):
     __tablename__ = "worker_teams"
 
@@ -133,7 +132,7 @@ class WorkerTeam(Base):
     name = Column(String, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    # один WorkerTeam может обслуживать много проектов
+    # one worker team can handle many proejcts
     projects = relationship(
         "Project",
         back_populates="worker_team",
