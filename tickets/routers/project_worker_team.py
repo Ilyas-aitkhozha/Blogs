@@ -11,7 +11,10 @@ from tickets.schemas.user import UserBrief
 
 import tickets.repository.project_worker_team as repo
 
-router = APIRouter(prefix="/projects/{project_id}/worker-team", tags=["Worker Teams"])
+router = APIRouter(
+    prefix="/teams/{team_id}/projects/{project_id}/worker-team",
+    tags=["Worker Teams"],
+)
 
 @router.post(
     "/",
@@ -19,13 +22,15 @@ router = APIRouter(prefix="/projects/{project_id}/worker-team", tags=["Worker Te
     status_code=status.HTTP_201_CREATED,
 )
 def assign_team(
+    team_id: int = Path(..., ge=1),
     project_id: int = Path(..., ge=1),
     payload: ProjectWorkerTeamBase = ...,
     db: Session = Depends(get_db),
     _current_user=Depends(require_project_admin),
 ) -> ProjectWorkerTeamRead:
     try:
-        raw = repo.assign_worker_team_to_project(db, project_id, payload.team_id)
+        # теперь используем team_id из пути
+        raw = repo.assign_worker_team_to_project(db, project_id, team_id)
         return ProjectWorkerTeamRead.model_validate(raw)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -35,6 +40,7 @@ def assign_team(
     response_model=ProjectWorkerTeamRead,
 )
 def read_team(
+    team_id: int = Path(..., ge=1),
     project_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
     _current_user=Depends(require_project_member),
@@ -49,13 +55,15 @@ def read_team(
     response_model=ProjectWorkerTeamRead,
 )
 def reassign_team(
+    team_id: int = Path(..., ge=1),
     project_id: int = Path(..., ge=1),
     payload: ProjectWorkerTeamBase = ...,
     db: Session = Depends(get_db),
     _current_user=Depends(require_project_admin),
 ) -> ProjectWorkerTeamRead:
     try:
-        raw = repo.update_worker_team_for_project(db, project_id, payload.team_id)
+        # используем team_id из пути
+        raw = repo.update_worker_team_for_project(db, project_id, team_id)
         return ProjectWorkerTeamRead.model_validate(raw)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -65,6 +73,7 @@ def reassign_team(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def unassign_team(
+    team_id: int = Path(..., ge=1),
     project_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
     _current_user=Depends(require_project_admin),
@@ -77,6 +86,7 @@ def unassign_team(
     response_model=List[UserBrief],
 )
 def available_workers(
+    team_id: int = Path(..., ge=1),
     project_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
     _current_user=Depends(require_project_member),
@@ -89,6 +99,8 @@ def available_workers(
     response_model=List[TeamBriefInfo],
 )
 def list_free_teams(
+    team_id: int = Path(..., ge=1),
+    project_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
     _current_user=Depends(require_project_member),
 ) -> List[TeamBriefInfo]:
@@ -100,6 +112,8 @@ def list_free_teams(
     response_model=List[ProjectBrief],
 )
 def list_projects_needing_team(
+    team_id: int = Path(..., ge=1),
+    project_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
     _current_user=Depends(require_project_admin),
 ) -> List[ProjectBrief]:
