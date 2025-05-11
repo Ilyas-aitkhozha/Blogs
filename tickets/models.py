@@ -144,13 +144,13 @@ class WorkerTeam(Base):
     admin      = relationship("User", back_populates="administered_worker_teams")
 
     # связь с тикетами
-    tickets    = relationship(
+    tickets = relationship(
         "Ticket",
         back_populates="worker_team",
-        foreign_keys=["Ticket.worker_team_id"]
+        # foreign_keys=[Ticket.worker_team_id]  ← optional, but must be the Column
     )
-    # связь с проектами
-    projects   = relationship(
+
+    projects = relationship(
         "Project",
         back_populates="worker_team",
         cascade="all, delete-orphan"
