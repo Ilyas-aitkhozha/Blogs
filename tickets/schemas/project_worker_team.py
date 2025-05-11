@@ -9,8 +9,11 @@ class ProjectWorkerTeamBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class ProjectWorkerTeamRead(ProjectWorkerTeamBase):
+    id: int
     project_id: int
-    team: TeamBriefInfo
+    team_id: int
+    assigned_at: datetime
+
     model_config = ConfigDict(from_attributes=True)
 
 class ProjectWithWorkers(BaseModel):
