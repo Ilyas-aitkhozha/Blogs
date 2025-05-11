@@ -1,102 +1,95 @@
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from tickets.models import ProjectWorkerTeam, Project, Team, User, UserTeam
-# only 1 workers team to one project
-def assign_worker_team(
-    db: Session, project_id: int, team_id: int
-) -> ProjectWorkerTeam:
-    existing = (
-        db.query(ProjectWorkerTeam)
-          .filter_by(project_id=project_id)
-          .first()
-    )
-    if existing:
-        raise ValueError("Project already has a worker team")
+from tickets.models import WorkerTeam, Project, User, UserTeam
 
-    link = ProjectWorkerTeam(
-        project_id=project_id,
-        team_id=team_id,
-        assigned_at=datetime.now(timezone.utc),
+# Create a new worker's team
+def create_worker_team(
+    db: Session,
+    name: str,
+) -> WorkerTeam:
+    wt = WorkerTeam(
+        name=name,
+        created_at=datetime.now(timezone.utc),
     )
-    db.add(link)
+    db.add(wt)
     db.commit()
-    db.refresh(link)
-    return link
+    db.refresh(wt)
+    return wt
 
-
-def update_worker_team(
-    db: Session, project_id: int, new_team_id: int
-) -> ProjectWorkerTeam:
-    link = (
-        db.query(ProjectWorkerTeam)
-          .filter_by(project_id=project_id)
-          .first()
-    )
-    if not link:
-        raise ValueError("No existing worker team to update")
-
-    link.team_id = new_team_id
-    link.assigned_at = datetime.now(timezone.utc)
+# Assign an existing worker's team to a project (one per project)
+def assign_worker_team_to_project(
+    db: Session,
+    project_id: int,
+    worker_team_id: int,
+) -> Project:
+    project = db.query(Project).get(project_id)
+    if not project:
+        raise ValueError("Project not found")
+    project.worker_team_id = worker_team_id
     db.commit()
-    db.refresh(link)
-    return link
+    db.refresh(project)
+    return project
 
+# Update or reassign the worker's team for a project
+def update_worker_team_for_project(
+    db: Session,
+    project_id: int,
+    new_worker_team_id: int,
+) -> Project:
+    return assign_worker_team_to_project(db, project_id, new_worker_team_id)
 
-def remove_worker_team(db: Session, project_id: int) -> None:
-    link = (
-        db.query(ProjectWorkerTeam)
-          .filter_by(project_id=project_id)
-          .first()
-    )
-    if link:
-        db.delete(link)
-        db.commit()
+# Remove the worker's team assignment from a project
+def remove_worker_team_from_project(
+    db: Session,
+    project_id: int,
+) -> Project:
+    project = db.query(Project).get(project_id)
+    if not project:
+        raise ValueError("Project not found")
+    project.worker_team_id = None
+    db.commit()
+    db.refresh(project)
+    return project
 
+# Get the worker's team assigned to a project
+def get_worker_team_of_project(
+    db: Session,
+    project_id: int,
+) -> Optional[WorkerTeam]:
+    project = db.query(Project).get(project_id)
+    return project.worker_team if project else None
 
-def get_worker_team(
-    db: Session, project_id: int
-) -> Optional[ProjectWorkerTeam]:
-    return (
-        db.query(ProjectWorkerTeam)
-          .filter_by(project_id=project_id)
-          .first()
-    )
-
-
-def list_unassigned_projects(db: Session) -> List[Project]:
-    # all project_ids that already have a worker-team
-    assigned_ids = db.query(ProjectWorkerTeam.project_id)
-    # select projects whose id is not in that list
+# List all projects without any worker's team assigned
+def list_projects_without_worker_team(
+    db: Session,
+) -> List[Project]:
     return (
         db.query(Project)
-          .filter(~Project.id.in_(assigned_ids))
+          .filter(Project.worker_team_id.is_(None))
           .all()
     )
 
+# List all existing worker's teams
+def list_worker_teams(
+    db: Session,
+) -> List[WorkerTeam]:
+    return db.query(WorkerTeam).all()
 
-# teams that don’t have any projects assigned to them
-def list_available_worker_teams(db: Session) -> List[Team]:
-    assigned_ids = db.query(ProjectWorkerTeam.team_id)
-    return (
-        db.query(Team)
-          .filter(~Team.id.in_(assigned_ids))
-          .all()
-    )
-
-
+# Get available users (is_available=True) in the project's worker team
 def get_available_workers_by_project(
-    db: Session, project_id: int
+    db: Session,
+    project_id: int,
 ) -> List[User]:
-    link = get_worker_team(db, project_id)
-    if not link:
+    project = db.query(Project).get(project_id)
+    if not project or not project.worker_team:
         return []
-
+    wt = project.worker_team
     return (
         db.query(User)
           .join(UserTeam, User.id == UserTeam.user_id)
           .filter(
-              UserTeam.team_id == link.team_id,
+              UserTeam.team_id == wt.id,
               User.is_available.is_(True),
           )
           .all()
