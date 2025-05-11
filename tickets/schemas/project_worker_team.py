@@ -1,17 +1,20 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import List, Optional
+from typing import List
+from tickets.schemas.team import TeamBriefInfo
 
-class WorkerTeamBase(BaseModel):
-    name: str
+class ProjectWorkerTeamBase(BaseModel):
+    team_id: int
+    assigned_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
-class WorkerTeamCreate(WorkerTeamBase):
-    pass
+class ProjectWorkerTeamRead(ProjectWorkerTeamBase):
+    project_id: int
+    team: TeamBriefInfo
+    model_config = ConfigDict(from_attributes=True)
 
-class WorkerTeamRead(WorkerTeamBase):
+class ProjectWithWorkers(BaseModel):
     id: int
-    created_at: datetime
-    # список проектов, которые обслуживает команда
-    projects: List[int] = []  # можно заменить на List[ProjectBrief] при наличии
+    name: str
+    worker_team_links: List[ProjectWorkerTeamRead]
     model_config = ConfigDict(from_attributes=True)
