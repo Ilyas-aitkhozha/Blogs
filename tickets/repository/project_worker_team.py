@@ -1,169 +1,121 @@
+# tickets/repository/project_worker_team.py
+
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status, Path
+from typing import List, Optional
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
 
-from tickets.database import get_db
-from tickets.routers.dependencies import (
-    require_project_admin,
-    require_project_member,
-    require_team_admin,
-)
-from tickets.schemas.project_worker_team import (
-    ProjectWorkerTeamCreate,
-    ProjectWorkerTeamRead,
-)
-from tickets.schemas.project import ProjectBrief
-from tickets.schemas.team import TeamBriefInfo
-from tickets.schemas.user import UserBrief
-import tickets.repository.project_worker_team as repo
-
-router = APIRouter(
-    prefix="/teams/{team_id}/projects/{project_id}/worker-team",
-    tags=["Worker Teams"],
-)
+from tickets.models import WorkerTeam, Project, User, UserTeam
 
 
-@router.post(
-    "/create",
-    response_model=ProjectWorkerTeamRead,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_and_assign_worker_team(
-    team_id: int = Path(..., ge=1),
-    project_id: int = Path(..., ge=1),
-    data: ProjectWorkerTeamCreate = ...,
-    db: Session = Depends(get_db),
-    current_user=Depends(require_team_admin),
-) -> ProjectWorkerTeamRead:
-    result = repo.create_and_assign_worker_team(
-        db=db,
-        project_id=project_id,
-        name=data.name,
-        admin_id=current_user.id,
-    )
-    return ProjectWorkerTeamRead.model_validate(result)
+def create_worker_team(
+    db: Session,
+    name: str,
+    admin_id: int,
+) -> WorkerTeam:
+    wt = WorkerTeam(name=name, admin_id=admin_id)
+    db.add(wt)
+    db.commit()
+    db.refresh(wt)
+    return wt
 
 
-@router.post(
-    "/assign",
-    response_model=ProjectWorkerTeamRead,
-    status_code=status.HTTP_200_OK,
-)
-def assign_existing_worker_team(
-    team_id: int = Path(..., ge=1),
-    project_id: int = Path(..., ge=1),
-    db: Session = Depends(get_db),
-    current_user=Depends(require_project_admin),
-) -> ProjectWorkerTeamRead:
-    repo.assign_worker_team_to_project(db, project_id, team_id)
-    wt = repo.get_worker_team_of_project(db, project_id)
-    if not wt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="WorkerTeam not found")
-    payload = {
-        "id": wt.id,
-        "project_id": project_id,
-        "team_id": wt.id,
-        "assigned_at": datetime.now(timezone.utc),
-        "name": wt.name,
-        "description": None,
-    }
-    return ProjectWorkerTeamRead.model_validate(payload)
-
-
-@router.get(
-    "/",
-    response_model=ProjectWorkerTeamRead,
-)
-def read_worker_team_assignment(
-    team_id: int = Path(..., ge=1),
-    project_id: int = Path(..., ge=1),
-    db: Session = Depends(get_db),
-    current_user=Depends(require_project_member),
-) -> ProjectWorkerTeamRead:
-    wt = repo.get_worker_team_of_project(db, project_id)
-    if not wt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No WorkerTeam assigned")
-    payload = {
-        "id": wt.id,
-        "project_id": project_id,
-        "team_id": wt.id,
-        "assigned_at": datetime.now(timezone.utc),
-        "name": wt.name,
-        "description": None,
-    }
-    return ProjectWorkerTeamRead.model_validate(payload)
-
-
-@router.patch(
-    "/",
-    response_model=ProjectWorkerTeamRead,
-)
-def reassign_worker_team(
-    team_id: int = Path(..., ge=1),
-    project_id: int = Path(..., ge=1),
-    db: Session = Depends(get_db),
-    current_user=Depends(require_project_admin),
-) -> ProjectWorkerTeamRead:
-    repo.update_worker_team_for_project(db, project_id, team_id)
-    wt = repo.get_worker_team_of_project(db, project_id)
-    payload = {
-        "id": wt.id,
-        "project_id": project_id,
-        "team_id": wt.id,
-        "assigned_at": datetime.now(timezone.utc),
-        "name": wt.name,
-        "description": None,
-    }
-    return ProjectWorkerTeamRead.model_validate(payload)
-
-
-@router.delete(
-    "/",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-def unassign_worker_team(
-    team_id: int = Path(..., ge=1),
-    project_id: int = Path(..., ge=1),
-    db: Session = Depends(get_db),
-    current_user=Depends(require_project_admin),
+def assign_worker_team_to_project(
+    db: Session,
+    project_id: int,
+    worker_team_id: int,
 ) -> None:
-    repo.remove_worker_team_from_project(db, project_id)
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    project.worker_team_id = worker_team_id
+    db.commit()
 
 
-@router.get(
-    "/available-workers",
-    response_model=List[UserBrief],
-)
-def available_workers(
-    team_id: int = Path(..., ge=1),
-    project_id: int = Path(..., ge=1),
-    db: Session = Depends(get_db),
-    current_user=Depends(require_project_member),
-) -> List[UserBrief]:
-    users = repo.get_available_workers_by_project(db, project_id)
-    return [UserBrief.model_validate(u) for u in users]
+def create_and_assign_worker_team(
+    db: Session,
+    project_id: int,
+    name: str,
+    admin_id: int,
+) -> dict:
+    # 1) создаём новую команду
+    wt = create_worker_team(db, name, admin_id)
+    # 2) привязываем её к проекту
+    assign_worker_team_to_project(db, project_id, wt.id)
+    # 3) собираем результат под ProjectWorkerTeamRead
+    return {
+        "id": wt.id,
+        "project_id": project_id,
+        "team_id": wt.id,
+        "assigned_at": datetime.now(timezone.utc),
+        "name": wt.name,
+        "description": None,
+    }
 
 
-@router.get(
-    "/available",
-    response_model=List[TeamBriefInfo],
-)
-def list_all_worker_teams(
-    db: Session = Depends(get_db),
-    current_user=Depends(require_project_member),
-) -> List[TeamBriefInfo]:
-    teams = repo.list_worker_teams(db)
-    return [TeamBriefInfo.model_validate(t) for t in teams]
+def update_worker_team_for_project(
+    db: Session,
+    project_id: int,
+    new_worker_team_id: int,
+) -> dict:
+    # просто переиспользуем assign + собираем payload
+    assign_worker_team_to_project(db, project_id, new_worker_team_id)
+    wt = get_worker_team_of_project(db, project_id)
+    return {
+        "id": wt.id,
+        "project_id": project_id,
+        "team_id": wt.id,
+        "assigned_at": datetime.now(timezone.utc),
+        "name": wt.name,
+        "description": None,
+    }
 
 
-@router.get(
-    "/unassigned-projects",
-    response_model=List[ProjectBrief],
-)
-def list_projects_needing_team(
-    db: Session = Depends(get_db),
-    current_user=Depends(require_project_admin),
-) -> List[ProjectBrief]:
-    projects = repo.list_projects_without_worker_team(db)
-    return [ProjectBrief.model_validate(p) for p in projects]
+def remove_worker_team_from_project(
+    db: Session,
+    project_id: int,
+) -> None:
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    project.worker_team_id = None
+    db.commit()
+
+
+def get_worker_team_of_project(
+    db: Session,
+    project_id: int,
+) -> Optional[WorkerTeam]:
+    project = db.query(Project).filter(Project.id == project_id).first()
+    return project.worker_team if project else None
+
+
+def list_projects_without_worker_team(
+    db: Session,
+) -> List[Project]:
+    return db.query(Project).filter(Project.worker_team_id.is_(None)).all()
+
+
+def list_worker_teams(
+    db: Session,
+) -> List[WorkerTeam]:
+    return db.query(WorkerTeam).all()
+
+
+def get_available_workers_by_project(
+    db: Session,
+    project_id: int,
+) -> List[User]:
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project or not project.worker_team:
+        return []
+    wt_id = project.worker_team.id
+    return (
+        db.query(User)
+          .join(UserTeam, User.id == UserTeam.user_id)
+          .filter(
+              UserTeam.team_id == wt_id,
+              User.is_available.is_(True),
+          )
+          .all()
+    )
