@@ -1,16 +1,15 @@
-from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from tickets.models import WorkerTeam, Project, User, UserTeam
 
-# Create a new worker's team
 def create_worker_team(
     db: Session,
     name: str,
+    admin_id: int,
 ) -> WorkerTeam:
     wt = WorkerTeam(
         name=name,
-        created_at=datetime.now(timezone.utc),
+        admin_id=admin_id,
     )
     db.add(wt)
     db.commit()
