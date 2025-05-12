@@ -1,6 +1,8 @@
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
-
+from fastapi import HTTPException,status
 from typing import List, Optional
+from tickets.schemas.project_worker_team import ProjectWorkerTeamRead
 from tickets.models import WorkerTeam, Project, User, UserTeam
 
 def create_worker_team(
@@ -27,7 +29,7 @@ def assign_worker_team_to_project(
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
-    existing = db.query(ProjectWorkerTeam).filter_by(project_id=project_id).first()
+    existing = db.query(WorkerTeam).filter_by(project_id=project_id).first()
     if existing:
         db.delete(existing)
         db.flush()
