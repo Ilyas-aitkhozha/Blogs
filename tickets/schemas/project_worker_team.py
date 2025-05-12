@@ -8,6 +8,10 @@ class ProjectWorkerTeamBase(BaseModel):
     description: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
+class ProjectWorkerTeamCreate(BaseModel):
+    name: str
+    model_config = ConfigDict(from_attributes=True)
+
 class ProjectWorkerTeamRead(ProjectWorkerTeamBase):
     id: int
     project_id: int
