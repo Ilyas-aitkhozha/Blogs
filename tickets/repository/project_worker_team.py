@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from fastapi import HTTPException,status
 from typing import List, Optional
-from tickets.schemas.project_worker_team import ProjectWorkerTeamRead
+from tickets.schemas.project_worker_team import ProjectWorkerTeamRead, ProjectWorkerTeamBase
 from tickets.models import WorkerTeam, Project, User, UserTeam
 
 def create_worker_team(
@@ -24,25 +24,14 @@ def assign_worker_team_to_project(
     db: Session,
     project_id: int,
     worker_team_id: int,
-) -> ProjectWorkerTeam:
-    project = db.get(Project, project_id)
+) -> Project:
+    project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
-
-    existing = db.query(WorkerTeam).filter_by(project_id=project_id).first()
-    if existing:
-        db.delete(existing)
-        db.flush()
-
-    link = ProjectWorkerTeam(
-        project_id=project_id,
-        team_id=worker_team_id,
-        assigned_at=datetime.now(timezone.utc),
-    )
-    db.add(link)
+    project.worker_team_id = worker_team_id
     db.commit()
-    db.refresh(link)
-    return link
+    db.refresh(project)
+    return project
 
 # Update or reassign the worker's team for a project
 def update_worker_team_for_project(
