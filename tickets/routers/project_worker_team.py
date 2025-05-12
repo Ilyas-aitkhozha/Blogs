@@ -40,16 +40,11 @@ def create_worker_team(
 def assign_team(
     team_id: int = Path(..., ge=1),
     project_id: int = Path(..., ge=1),
-    payload: ProjectWorkerTeamBase = ...,
     db: Session = Depends(get_db),
-    _current_user=Depends(require_project_admin),
-) -> ProjectWorkerTeamRead:
-    try:
-        # теперь используем team_id из пути
-        raw = repo.assign_worker_team_to_project(db, project_id, team_id)
-        return ProjectWorkerTeamRead.model_validate(raw)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    current_user=Depends(require_project_admin),
+) -> ProjectBrief:
+    project = repo.assign_worker_team_to_project(db, project_id, team_id)
+    return ProjectBrief.model_validate(project)
 
 @router.get(
     "/",
