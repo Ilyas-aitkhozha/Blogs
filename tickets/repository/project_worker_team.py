@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+
 from typing import List, Optional
 from tickets.models import WorkerTeam, Project, User, UserTeam
 
@@ -21,14 +22,25 @@ def assign_worker_team_to_project(
     db: Session,
     project_id: int,
     worker_team_id: int,
-) -> Project:
-    project = db.query(Project).get(project_id)
+) -> ProjectWorkerTeam:
+    project = db.get(Project, project_id)
     if not project:
-        raise ValueError("Project not found")
-    project.worker_team_id = worker_team_id
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+
+    existing = db.query(ProjectWorkerTeam).filter_by(project_id=project_id).first()
+    if existing:
+        db.delete(existing)
+        db.flush()
+
+    link = ProjectWorkerTeam(
+        project_id=project_id,
+        team_id=worker_team_id,
+        assigned_at=datetime.now(timezone.utc),
+    )
+    db.add(link)
     db.commit()
-    db.refresh(project)
-    return project
+    db.refresh(link)
+    return link
 
 # Update or reassign the worker's team for a project
 def update_worker_team_for_project(
