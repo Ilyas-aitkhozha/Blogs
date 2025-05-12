@@ -22,7 +22,7 @@ router = APIRouter(
 def create_worker_team(
     data: ProjectWorkerTeamBase,
     db: Session = Depends(get_db),
-    _current_user=Depends(require_project_admin),
+    current_user=Depends(require_project_admin),
 ):
     return repo.create_worker_team(
         db=db,
