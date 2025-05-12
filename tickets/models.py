@@ -1,3 +1,5 @@
+# tickets/models.py
+
 from sqlalchemy import Column, Integer, Boolean, String, ForeignKey, Text, DateTime, Enum as SqlEnum
 from sqlalchemy.orm import relationship
 import random, string
@@ -47,6 +49,7 @@ class Team(Base):
         cascade="all, delete-orphan"
     )
 
+
 class User(Base):
     __tablename__ = 'users'
     id                   = Column(Integer, primary_key=True, index=True)
@@ -75,7 +78,7 @@ class User(Base):
     # новый код: администрируемые рабочие команды
     administered_worker_teams = relationship(
         "WorkerTeam",
-        back_populates="admin",
+        back_populates="administered_worker_teams",
         cascade="all, delete-orphan"
     )
 
@@ -109,7 +112,6 @@ class Ticket(Base):
     worker_team = relationship(
         "WorkerTeam",
         back_populates="tickets",
-        # ← use the actual Column object, not a string!
         foreign_keys=[worker_team_id],
     )
 
@@ -140,9 +142,12 @@ class WorkerTeam(Base):
     __tablename__ = "worker_teams"
 
     id         = Column(Integer, primary_key=True, index=True)
-    team_id = Column(Integer, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
+    team_id    = Column(Integer, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
     name       = Column(String, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # связь с Team
+    team       = relationship("Team", back_populates="worker_teams")
 
     # новый код: админ команды
     admin_id   = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -152,7 +157,6 @@ class WorkerTeam(Base):
     tickets = relationship(
         "Ticket",
         back_populates="worker_team",
-        # foreign_keys=[Ticket.worker_team_id]  ← optional, but must be the Column
     )
 
     projects = relationship(
@@ -160,6 +164,7 @@ class WorkerTeam(Base):
         back_populates="worker_team",
         cascade="all, delete-orphan"
     )
+
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
