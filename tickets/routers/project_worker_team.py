@@ -18,7 +18,7 @@ router = APIRouter(
     tags=["Worker Teams"],
 )
 
-@router.post("/", response_model=ProjectWorkerTeamRead, status_code=status.HTTP_201_CREATED)
+@router.post("/create", response_model=ProjectWorkerTeamRead, status_code=status.HTTP_201_CREATED)
 def create_worker_team(
     data: ProjectWorkerTeamBase,
     db: Session = Depends(get_db),
@@ -33,7 +33,7 @@ def create_worker_team(
 
 
 @router.post(
-    "/",
+    "/assign",
     response_model=ProjectWorkerTeamRead,
     status_code=status.HTTP_201_CREATED,
 )
