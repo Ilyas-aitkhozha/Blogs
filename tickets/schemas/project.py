@@ -32,6 +32,7 @@ class ProjectMembership(BaseModel):
 class ProjectBrief(BaseModel):
     id: int
     name: str
+    worker_team_id: Optional[int] = None
     description: Optional[str] = None
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
