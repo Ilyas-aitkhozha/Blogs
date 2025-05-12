@@ -41,7 +41,11 @@ class Team(Base):
     user_teams  = relationship("UserTeam", back_populates="team", cascade="all, delete-orphan")
     projects    = relationship("Project", back_populates="team")
     members     = relationship("User", secondary="user_teams", back_populates="teams", overlaps="user_teams")
-
+    worker_teams = relationship(
+        "WorkerTeam",
+        back_populates="team",
+        cascade="all, delete-orphan"
+    )
 
 class User(Base):
     __tablename__ = 'users'
@@ -136,6 +140,7 @@ class WorkerTeam(Base):
     __tablename__ = "worker_teams"
 
     id         = Column(Integer, primary_key=True, index=True)
+    team_id = Column(Integer, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
     name       = Column(String, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
