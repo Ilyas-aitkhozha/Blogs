@@ -4,20 +4,8 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-
+from tickets.repository.worker_team import create_worker_team as create_wt
 from tickets.models import WorkerTeam, Project, User, UserTeam
-
-
-def create_worker_team(
-    db: Session,
-    name: str,
-    admin_id: int,
-) -> WorkerTeam:
-    wt = WorkerTeam(name=name, admin_id=admin_id)
-    db.add(wt)
-    db.commit()
-    db.refresh(wt)
-    return wt
 
 
 def assign_worker_team_to_project(
@@ -34,15 +22,13 @@ def assign_worker_team_to_project(
 
 def create_and_assign_worker_team(
     db: Session,
+    team_id: int,
     project_id: int,
     name: str,
     admin_id: int,
 ) -> dict:
-    # 1) создаём новую команду
-    wt = create_worker_team(db, name, admin_id)
-    # 2) привязываем её к проекту
+    wt = create_wt(db, team_id, name, admin_id)
     assign_worker_team_to_project(db, project_id, wt.id)
-    # 3) собираем результат под ProjectWorkerTeamRead
     return {
         "id": wt.id,
         "project_id": project_id,
