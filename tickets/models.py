@@ -78,12 +78,12 @@ class User(Base):
     # новый код: администрируемые рабочие команды
     administered_worker_teams = relationship(
         "WorkerTeam",
-        back_populates="administered_worker_teams",
+        back_populates="admin",
         cascade="all, delete-orphan"
     )
 
 
-class Ticket(Base):
+class Ticket(Base):(Base):
     __tablename__ = "tickets"
     id             = Column(Integer, primary_key=True, index=True)
     title          = Column(String, nullable=False)
