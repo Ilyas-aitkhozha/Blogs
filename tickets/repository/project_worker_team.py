@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
-from sqlalchemy.orm import Session
-from fastapi import HTTPException,status
 from typing import List, Optional
-from tickets.schemas.project_worker_team import ProjectWorkerTeamRead, ProjectWorkerTeamBase
+from fastapi import HTTPException, status
+from sqlalchemy.orm import Session
+
 from tickets.models import WorkerTeam, Project, User, UserTeam
+
 
 def create_worker_team(
     db: Session,
@@ -19,7 +20,7 @@ def create_worker_team(
     db.refresh(wt)
     return wt
 
-# Assign an existing worker's team to a project (one per project)
+
 def assign_worker_team_to_project(
     db: Session,
     project_id: int,
@@ -33,7 +34,28 @@ def assign_worker_team_to_project(
     db.refresh(project)
     return project
 
-# Update or reassign the worker's team for a project
+
+def create_and_assign_worker_team(
+    db: Session,
+    project_id: int,
+    name: str,
+    admin_id: int,
+) -> dict:
+    # создаём команду
+    wt = create_worker_team(db, name, admin_id)
+    # назначаем её проекту
+    assign_worker_team_to_project(db, project_id, wt.id)
+    # собираем полную структуру под ProjectWorkerTeamRead
+    return {
+        "id": wt.id,
+        "project_id": project_id,
+        "team_id": wt.id,
+        "assigned_at": datetime.now(timezone.utc),
+        "name": wt.name,
+        "description": None,
+    }
+
+
 def update_worker_team_for_project(
     db: Session,
     project_id: int,
@@ -41,57 +63,51 @@ def update_worker_team_for_project(
 ) -> Project:
     return assign_worker_team_to_project(db, project_id, new_worker_team_id)
 
-# Remove the worker's team assignment from a project
+
 def remove_worker_team_from_project(
     db: Session,
     project_id: int,
-) -> Project:
-    project = db.query(Project).get(project_id)
+) -> None:
+    project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
-        raise ValueError("Project not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     project.worker_team_id = None
     db.commit()
-    db.refresh(project)
-    return project
 
-# Get the worker's team assigned to a project
+
 def get_worker_team_of_project(
     db: Session,
     project_id: int,
 ) -> Optional[WorkerTeam]:
-    project = db.query(Project).get(project_id)
+    project = db.query(Project).filter(Project.id == project_id).first()
     return project.worker_team if project else None
 
-# List all projects without any worker's team assigned
+
 def list_projects_without_worker_team(
     db: Session,
 ) -> List[Project]:
-    return (
-        db.query(Project)
-          .filter(Project.worker_team_id.is_(None))
-          .all()
-    )
+    return db.query(Project).filter(Project.worker_team_id.is_(None)).all()
 
-# List all existing worker's teams
+
 def list_worker_teams(
     db: Session,
 ) -> List[WorkerTeam]:
     return db.query(WorkerTeam).all()
 
-# Get available users (is_available=True) in the project's worker team
+
 def get_available_workers_by_project(
     db: Session,
     project_id: int,
 ) -> List[User]:
-    project = db.query(Project).get(project_id)
+    project = db.query(Project).filter(Project.id == project_id).first()
     if not project or not project.worker_team:
         return []
-    wt = project.worker_team
+    wt_id = project.worker_team.id
     return (
         db.query(User)
           .join(UserTeam, User.id == UserTeam.user_id)
           .filter(
-              UserTeam.team_id == wt.id,
+              UserTeam.team_id == wt_id,
               User.is_available.is_(True),
           )
           .all()
