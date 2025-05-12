@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response, Path
 from sqlalchemy.orm import Session
 from typing import List
 
+from sqlalchemy.sql.functions import current_user
+
 from tickets.database import get_db
 from tickets.routers.dependencies import require_project_admin, require_project_member
 from tickets.schemas.project_worker_team import ProjectWorkerTeamBase, ProjectWorkerTeamRead
@@ -15,6 +17,20 @@ router = APIRouter(
     prefix="/teams/{team_id}/projects/{project_id}/worker-team",
     tags=["Worker Teams"],
 )
+
+@router.post("/", response_model=ProjectWorkerTeamRead, status_code=status.HTTP_201_CREATED)
+def create_worker_team(
+    data: ProjectWorkerTeamBase,
+    db: Session = Depends(get_db),
+    _current_user=Depends(require_project_admin),
+):
+    return repo.create_worker_team(
+        db=db,
+        name=data.name,
+        admin_id=current_user.id,
+    )
+
+
 
 @router.post(
     "/",
