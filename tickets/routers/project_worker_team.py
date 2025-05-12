@@ -5,8 +5,8 @@ from typing import List
 from sqlalchemy.sql.functions import current_user
 
 from tickets.database import get_db
-from tickets.routers.dependencies import require_project_admin, require_project_member
-from tickets.schemas.project_worker_team import ProjectWorkerTeamBase, ProjectWorkerTeamRead
+from tickets.routers.dependencies import require_project_admin, require_project_member, require_team_admin
+from tickets.schemas.project_worker_team import ProjectWorkerTeamBase, ProjectWorkerTeamRead, ProjectWorkerTeamCreate
 from tickets.schemas.team import TeamBriefInfo
 from tickets.schemas.project import ProjectBrief
 from tickets.schemas.user import UserBrief
@@ -20,9 +20,9 @@ router = APIRouter(
 
 @router.post("/create", response_model=ProjectWorkerTeamRead, status_code=status.HTTP_201_CREATED)
 def create_worker_team(
-    data: ProjectWorkerTeamBase,
+    data: ProjectWorkerTeamCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_project_admin),
+    current_user=Depends(require_team_admin),
 ):
     return repo.create_worker_team(
         db=db,
