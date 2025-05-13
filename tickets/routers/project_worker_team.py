@@ -37,6 +37,7 @@ def create_and_assign_worker_team(
     current_user=Depends(require_team_admin),
 ) -> ProjectWorkerTeamRead:
     result = repo.create_and_assign_worker_team(
+        team_id=team_id,
         db=db,
         project_id=project_id,
         name=data.name,
