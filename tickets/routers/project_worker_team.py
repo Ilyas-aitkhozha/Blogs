@@ -54,10 +54,11 @@ def create_and_assign_worker_team(
 def assign_existing_worker_team(
     team_id: int = Path(..., ge=1),
     project_id: int = Path(..., ge=1),
+    worker_team_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
     current_user=Depends(require_project_admin),
 ) -> ProjectWorkerTeamRead:
-    repo.assign_worker_team_to_project(db, project_id, team_id)
+    repo.assign_worker_team_to_project(db, project_id, worker_team_id)
     wt = repo.get_worker_team_of_project(db, project_id)
     if not wt:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="WorkerTeam not found")
@@ -103,10 +104,11 @@ def read_worker_team_assignment(
 def reassign_worker_team(
     team_id: int = Path(..., ge=1),
     project_id: int = Path(..., ge=1),
+    worker_team_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
     current_user=Depends(require_project_admin),
 ) -> ProjectWorkerTeamRead:
-    repo.update_worker_team_for_project(db, project_id, team_id)
+    repo.update_worker_team_for_project(db, project_id, worker_team_id)
     wt = repo.get_worker_team_of_project(db, project_id)
     payload = {
         "id": wt.id,
