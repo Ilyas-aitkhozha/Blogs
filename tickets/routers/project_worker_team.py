@@ -60,8 +60,6 @@ def assign_existing_worker_team(
 ) -> ProjectWorkerTeamRead:
     repo.assign_worker_team_to_project(db, project_id, worker_team_id)
     wt = repo.get_worker_team_of_project(db, project_id)
-    if not wt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="WorkerTeam not found")
     payload = {
         "id": wt.id,
         "project_id": project_id,
