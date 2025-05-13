@@ -47,7 +47,7 @@ def create_and_assign_worker_team(
 
 
 @router.post(
-    "/assign",
+    "/assign/{worker_team_id}",
     response_model=ProjectWorkerTeamRead,
     status_code=status.HTTP_200_OK,
 )
@@ -98,7 +98,7 @@ def read_worker_team_assignment(
 
 
 @router.patch(
-    "/",
+    "/reassign/{worker_team_id}",
     response_model=ProjectWorkerTeamRead,
 )
 def reassign_worker_team(
