@@ -44,7 +44,6 @@ def update_worker_team_for_project(
     project_id: int,
     new_worker_team_id: int,
 ) -> dict:
-    # просто переиспользуем assign + собираем payload
     assign_worker_team_to_project(db, project_id, new_worker_team_id)
     wt = get_worker_team_of_project(db, project_id)
     return {
