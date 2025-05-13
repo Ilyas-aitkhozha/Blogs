@@ -13,10 +13,16 @@ def assign_worker_team_to_project(
     project_id: int,
     worker_team_id: int,
 ) -> None:
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = db.query(Project).filter_by(id=project_id).first()
     if not project:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
-    project.worker_team_id = worker_team_id
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    wt = db.query(WorkerTeam).filter_by(id=worker_team_id).first()
+    if not wt or wt.team_id != project.team_id:
+        raise HTTPException(status_code=404,
+                            detail="WorkerTeam not found in this Team")
+
+    project.worker_team_id = wt.id
     db.commit()
 
 
