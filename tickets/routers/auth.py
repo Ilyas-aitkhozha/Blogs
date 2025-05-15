@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from fastapi.encoders import jsonable_encoder
 import os
 import logging
+from ..hashing import Hash
 from tickets.schemas.auth import Login
 from tickets.models import User
 from tickets import models, jwttoken
@@ -38,6 +39,25 @@ def login_or_register_via_site(
     payload: Login,
     db: Session = Depends(get_db),
 ):
+    user = db.query(models.User).filter(models.User.name == payload.username).first()
+    if not user:
+        user = models.User(
+            name=payload.username,
+            email=f"{payload.username}@local",
+            password=Hash.bcrypt(payload.password),
+            is_available=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    else:
+        if not Hash.verify(user.password, payload.password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Неверные учётные данные",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
     token = jwttoken.create_access_token({"sub": str(user.id)})
 
     user_out = build_user_response(user)
