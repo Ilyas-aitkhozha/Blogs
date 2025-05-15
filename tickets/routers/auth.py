@@ -3,6 +3,7 @@ from starlette.responses import RedirectResponse, JSONResponse
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
 from sqlalchemy.orm import Session
+from fastapi.encoders import jsonable_encoder
 import os
 import logging
 from tickets.schemas.auth import Login
@@ -34,41 +35,17 @@ oauth.register(
 
 
 @router.get("/", tags=["Auth"])
-def get_auth_options():
-    return {
-        "available_methods": {
-            "login_via_site": "/auth/login_in_site",
-            "login_via_google": "/auth/google"
-        }
-    }
-
-@router.post("/login_in_site", response_model=ShowUser, tags=["Auth"])
 def login_or_register_via_site(
-    payload: Login,                   # <-- теперь ждём JSON { "username": "...", "password": "..." }
+    payload: Login,
     db: Session = Depends(get_db),
 ):
-    username = payload.username
-    password = payload.password
-
-    user = db.query(models.User).filter(models.User.name == username).first()
-    if not user:
-        user = models.User(
-            name=username,
-            email=f"{username}@local",
-            password=Hash.bcrypt(password),
-            is_available=True
-        )
-        db.add(user); db.commit(); db.refresh(user)
-    else:
-        if not Hash.verify(user.password, password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Неверные учётные данные",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
     token = jwttoken.create_access_token({"sub": str(user.id)})
-    response = JSONResponse(content=build_user_response(user).model_dump())
+
+    user_out = build_user_response(user)
+
+    payload = jsonable_encoder(user_out)
+
+    response = JSONResponse(content=payload, status_code=status.HTTP_200_OK)
     response.set_cookie(
         key="access_token",
         value=token,
@@ -76,9 +53,8 @@ def login_or_register_via_site(
         secure=IS_PRODUCTION,
         samesite="none" if IS_PRODUCTION else "lax",
         path="/",
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
-
     return response
 
 def build_user_response(user: User) -> ShowUser:
