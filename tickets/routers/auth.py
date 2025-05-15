@@ -5,6 +5,7 @@ from starlette.config import Config
 from sqlalchemy.orm import Session
 import os
 import logging
+from tickets.schemas.auth import Login
 from tickets.models import User
 from tickets import models, jwttoken
 from tickets.database import get_db
@@ -14,7 +15,6 @@ from tickets.oauth2 import get_current_user
 from tickets.jwttoken import ACCESS_TOKEN_EXPIRE_MINUTES
 from tickets.schemas.team import TeamWithProjects
 from tickets.schemas.project import ProjectMembership
-from fastapi.security import OAuth2PasswordRequestForm
 logger = logging.getLogger(__name__)
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 IS_PRODUCTION = ENVIRONMENT == "production"
@@ -44,24 +44,23 @@ def get_auth_options():
 
 @router.post("/login_in_site", response_model=ShowUser, tags=["Auth"])
 def login_or_register_via_site(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    payload: Login,                   # <-- теперь ждём JSON { "username": "...", "password": "..." }
     db: Session = Depends(get_db),
 ):
-    username = form_data.username
-    password = form_data.password
+    username = payload.username
+    password = payload.password
 
+    # — остальная логика без изменений —
     user = db.query(models.User).filter(models.User.name == username).first()
-    if not user:#creating persona
+    if not user:
         user = models.User(
             name=username,
             email=f"{username}@local",
             password=Hash.bcrypt(password),
             is_available=True
         )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    else:#checkaem dannie persona
+        db.add(user); db.commit(); db.refresh(user)
+    else:
         if not Hash.verify(user.password, password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -71,8 +70,7 @@ def login_or_register_via_site(
 
     token = jwttoken.create_access_token({"sub": str(user.id)})
 
-    # return user + set cookie for all paths
-    response = JSONResponse(content=ShowUser.model_validate(user).dict())
+    response = JSONResponse(content=ShowUser.model_validate(user) for user in user)
     response.set_cookie(
         key="access_token",
         value=token,
