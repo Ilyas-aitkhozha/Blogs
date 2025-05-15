@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, status
+from fastapi import APIRouter, Depends, Request, HTTPException, status, Response
 from starlette.responses import RedirectResponse, JSONResponse
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
@@ -172,3 +172,17 @@ async def google_callback(
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
     return response
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["Auth"]
+)
+def logout(response: Response):
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+        domain=None,
+        secure=IS_PRODUCTION,
+        samesite="none" if IS_PRODUCTION else "lax",
+    )
