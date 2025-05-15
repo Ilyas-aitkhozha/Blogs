@@ -10,7 +10,6 @@ from tickets.schemas.auth import Login
 from tickets.models import User
 from tickets import models, jwttoken
 from tickets.database import get_db
-from tickets.hashing import Hash
 from tickets.schemas.user import ShowUser
 from tickets.oauth2 import get_current_user
 from tickets.jwttoken import ACCESS_TOKEN_EXPIRE_MINUTES
