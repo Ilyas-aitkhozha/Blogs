@@ -17,9 +17,9 @@ FRONTEND_URL = os.getenv("FRONTEND_URL")
 FRONTEND_LOCAL_URL = os.getenv("FRONTEND_LOCAL_URL")
 
 origins = []
-if IS_PRODUCTION and FRONTEND_URL:
+if FRONTEND_URL:
     origins.append(FRONTEND_URL)
-elif FRONTEND_LOCAL_URL:
+if FRONTEND_LOCAL_URL:
     origins.append(FRONTEND_LOCAL_URL)
 
 models.Base.metadata.create_all(bind=engine)
