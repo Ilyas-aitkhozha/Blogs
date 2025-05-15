@@ -34,7 +34,7 @@ oauth.register(
 )
 
 
-@router.get("/", tags=["Auth"])
+@router.post("/", tags=["Auth"])
 def login_or_register_via_site(
     payload: Login,
     db: Session = Depends(get_db),
