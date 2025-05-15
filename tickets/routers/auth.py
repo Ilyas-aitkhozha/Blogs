@@ -69,8 +69,8 @@ def login_or_register_via_site(
             )
 
     token = jwttoken.create_access_token({"sub": str(user.id)})
-
-    response = JSONResponse(content=ShowUser.model_validate(user) for user in user)
+    user_out = ShowUser.model_validate(user)
+    response = JSONResponse(content=user_out.model_dump())
     response.set_cookie(
         key="access_token",
         value=token,
