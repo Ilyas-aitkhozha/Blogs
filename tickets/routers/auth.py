@@ -50,7 +50,6 @@ def login_or_register_via_site(
     username = payload.username
     password = payload.password
 
-    # — остальная логика без изменений —
     user = db.query(models.User).filter(models.User.name == username).first()
     if not user:
         user = models.User(
@@ -69,8 +68,7 @@ def login_or_register_via_site(
             )
 
     token = jwttoken.create_access_token({"sub": str(user.id)})
-    user_out = ShowUser.model_validate(user)
-    response = JSONResponse(content=user_out.model_dump())
+    response = JSONResponse(content=build_user_response(user).model_dump())
     response.set_cookie(
         key="access_token",
         value=token,
