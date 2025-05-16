@@ -97,7 +97,7 @@ def get_all_tickets(db: Session, project_id: int) -> List[TicketOut]:
               joinedload(models.Ticket.worker_team),
           )
           .filter_by(project_id=project_id)
-          .all()
+          .all()#ds
     )
     return [TicketOut.model_validate(t) for t in tickets]
 
