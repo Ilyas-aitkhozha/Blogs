@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from tickets.database import get_db
 from tickets.routers.dependencies import require_team_admin, require_team_member
 from tickets.schemas.project import ProjectCreate, ProjectOut, ProjectBrief
-from tickets.schemas.user import ShowUser
+from tickets.schemas.user import ShowUser, ShowUserAvailability
 from tickets.repository import project as project_repo
 from tickets.repository import user as user_repo
 from tickets.enums import ProjectRole, TicketType
@@ -88,7 +88,7 @@ def remove_user_from_project(
 
 @router.get(
     "/{project_id}/assignees",
-    response_model=List[ShowUser],
+    response_model=List[ShowUserAvailability],
 )
 def list_assignees(
     project_id: int = Path(..., ge=1),
