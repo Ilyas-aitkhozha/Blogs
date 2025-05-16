@@ -26,6 +26,10 @@ class ShowUser(UserBase):
     teams: List[TeamWithProjects]
     model_config = ConfigDict(from_attributes=True)
 
+class ShowUserAvailability(ShowUser):
+    is_available: bool
+    model_config = ConfigDict(from_attributes=True)
+
 class UserBrief(BaseModel):
     id: int
     name: str
