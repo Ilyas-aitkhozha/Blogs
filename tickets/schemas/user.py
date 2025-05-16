@@ -23,7 +23,6 @@ class UserCreate(UserBase):
 class ShowUser(UserBase):
     id: int
     email: Optional[str] = None
-    is_available: bool
     teams: List[TeamWithProjects]
     model_config = ConfigDict(from_attributes=True)
 
