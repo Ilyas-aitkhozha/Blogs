@@ -188,7 +188,7 @@ def get_chart(
     reply = f"GENERATE_CHART:STATUS_PIE:{team_id}"
     save_message(db, session_id, role="assistant", content=reply)
     return ChatResponse(reply=reply, session_id=session_id)
-
+#sd
 @router.post("/create-ticket", response_model=ChatResponse)
 def post_create_ticket(
     ticket_in: ticket_schema.TicketCreate,
