@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from tickets.repository.worker_team import create_worker_team as create_wt
 from tickets.models import WorkerTeam, Project, User, UserTeam
 
-#assign
 def assign_worker_team_to_project(
     db: Session,
     project_id: int,
