@@ -90,7 +90,6 @@ def build_user_response(user: User) -> ShowUser:
         id=user.id,
         name=user.name,
         email=user.email,
-        is_available=user.is_available,
         teams=teams_data
     )
 @router.get("/me", response_model=ShowUser)
