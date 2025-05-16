@@ -54,7 +54,7 @@ def login_or_register_via_site(
         if not Hash.verify(user.password, payload.password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Неверные учётные данные",
+                detail="password invalid",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
