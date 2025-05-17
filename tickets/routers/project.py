@@ -85,7 +85,7 @@ def remove_user_from_project(
 ) -> Response:
     project_repo.remove_user_from_project(db, project_id, user_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-#ababab
+
 @router.get(
     "/{project_id}/assignees",
     response_model=List[ShowUserAvailability],
