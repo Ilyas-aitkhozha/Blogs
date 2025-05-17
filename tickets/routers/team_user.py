@@ -125,7 +125,7 @@ def add_user_to_team(
     db.commit()
     db.refresh(association)
     return association
-#ababab
+
 @router.delete(
     "/members/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT
