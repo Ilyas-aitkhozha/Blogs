@@ -8,7 +8,7 @@ from tickets.schemas.ticket import TicketCreate, TicketStatusUpdate, TicketAssig
 from tickets.repository import ticket as ticket_repo
 from tickets import models
 from ..enums import *
-#ababab
+
 logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/projects/{project_id}",
