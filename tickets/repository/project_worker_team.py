@@ -43,7 +43,7 @@ def add_member_to_worker_team(db: Session, worker_team_id: int, user_id: int):
     db.refresh(link)
     return link
 
-def remove_user_from_project(db: Session, worker_team_id: int,user_id: int) -> None:
+def remove_user_from_worker_team(db: Session, worker_team_id: int,user_id: int) -> None:
     wt = db.query(WorkerTeam).filter_by(id=worker_team_id).first()
     if not wt:
         raise HTTPException(status_code=404, detail="WorkerTeam not found")
