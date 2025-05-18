@@ -153,9 +153,9 @@ def available_workers(
 def list_all_worker_teams(
     db: Session = Depends(get_db),
     current_user=Depends(require_project_member),
-) -> List[TeamBriefInfo]:
+) -> List[WorkerTeamBrief]:
     teams = repo.list_worker_teams(db)
-    return [TeamBriefInfo.model_validate(t) for t in teams]
+    return [WorkerTeamBrief.model_validate(t) for t in teams]
 
 
 @router.get(
