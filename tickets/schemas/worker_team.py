@@ -14,3 +14,9 @@ class WorkerTeamRead(BaseModel):
     admin_id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+class WorkerTeamBrief(BaseModel):
+    id: int
+    name: str
+    team_id: int
+    model_config = ConfigDict(from_attributes=True)
