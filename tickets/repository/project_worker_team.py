@@ -5,7 +5,7 @@ from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from tickets.repository.worker_team import create_worker_team as create_wt
-from tickets.models import WorkerTeam, Project, User, UserTeam
+from tickets.models import WorkerTeam, Project, User, UserTeam, WorkerTeamMember
 
 def assign_worker_team_to_project(
     db: Session,
