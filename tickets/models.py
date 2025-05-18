@@ -81,6 +81,17 @@ class User(Base):
         back_populates="admin",
         cascade="all, delete-orphan"
     )
+    worker_team_memberships = relationship(
+        "WorkerTeamMember",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    worker_teams = relationship(
+        "WorkerTeam",
+        secondary="worker_team_members",
+        back_populates="users",
+        overlaps="worker_team_memberships",
+    )
 
 
 class Ticket(Base):
