@@ -187,7 +187,7 @@ def add_member(
 
 @router.delete(
     "/members/{user_id}",
-    response_model=ProjectWorkerTeamRead,
+    response_model=WorkerTeamMemberRead,
     status_code=status.HTTP_204_NO_CONTENT)
 def remove_member(
         team_id: int = Path(..., ge=1),
@@ -200,4 +200,4 @@ def remove_member(
     if not wt:
         raise HTTPException(status_code=404, detail="Project has no WorkerTeam")
     member_delete = repo.remove_user_from_worker_team(db,wt.id,user_id)
-    return ProjectWorkerTeamRead.model_validate(member_delete)
+    return WorkerTeamMemberRead.model_validate(member_delete)
