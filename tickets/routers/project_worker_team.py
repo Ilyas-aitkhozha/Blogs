@@ -166,7 +166,7 @@ def list_projects_needing_team(
 ) -> List[ProjectBrief]:
     projects = repo.list_projects_without_worker_team(db)
     return [ProjectBrief.model_validate(p) for p in projects]
-
+# --------------------------Members Logic
 @router.post(
     "/members/{user_id}",
     response_model=WorkerTeamMemberRead,
@@ -179,9 +179,25 @@ def add_member(
     db: Session = Depends(get_db),
     current_user=Depends(require_project_admin),
 ):
-    # получаем worker_team_id от проекта
     wt = repo.get_worker_team_of_project(db, project_id)
     if not wt:
         raise HTTPException(status_code=404, detail="Project has no WorkerTeam")
     member = repo.add_member_to_worker_team(db, wt.id, user_id)
     return WorkerTeamMemberRead.model_validate(member)
+
+@router.delete(
+    "/members/{user_id}",
+    response_model=ProjectWorkerTeamRead,
+    status_code=status.HTTP_204_NO_CONTENT)
+def remove_member(
+        team_id: int = Path(..., ge=1),
+        project_id: int = Path(..., ge=1),
+        user_id: int = Path(..., ge=1),
+        db: Session = Depends(get_db),
+        current_user=Depends(require_project_admin)
+):
+    wt = repo.get_worker_team_of_project(db, project_id)
+    if not wt:
+        raise HTTPException(status_code=404, detail="Project has no WorkerTeam")
+    member_delete = repo.remove_user_from_worker_team(db,wt.id,user_id)
+    return ProjectWorkerTeamRead.model_validate(member_delete)
