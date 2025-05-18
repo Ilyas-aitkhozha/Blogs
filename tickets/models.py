@@ -175,6 +175,17 @@ class WorkerTeam(Base):
         back_populates="worker_team",
         cascade="all, delete-orphan"
     )
+    members = relationship(
+        "WorkerTeamMember",
+        back_populates="worker_team",
+        cascade="all, delete-orphan",
+    )
+    users = relationship(
+        "User",
+        secondary="worker_team_members",
+        back_populates="worker_teams",
+        overlaps="members",
+    )
 
 class WorkerTeamMember(Base):
     __tablename__ = "worker_team_members"
