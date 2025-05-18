@@ -24,6 +24,26 @@ def assign_worker_team_to_project(
     project.worker_team_id = wt.id
     db.commit()
 
+def add_member_to_worker_team(db: Session, worker_team_id: int, user_id: int):
+    wt = db.query(WorkerTeam).filter_by(id=worker_team_id).first()
+    if not wt:
+        raise HTTPException(status_code=404, detail="WorkerTeam not found")
+
+    # избегаем дублей
+    exists = (
+        db.query(WorkerTeamMember)
+          .filter_by(worker_team_id=worker_team_id, user_id=user_id)
+          .first()
+    )
+    if exists:
+        raise HTTPException(status_code=400, detail="User already in WorkerTeam")
+
+    link = WorkerTeamMember(worker_team_id=worker_team_id, user_id=user_id)
+    db.add(link)
+    db.commit()
+    db.refresh(link)
+    return link
+
 
 def create_and_assign_worker_team(
     db: Session,
