@@ -1,5 +1,3 @@
-# tickets/repository/project_worker_team.py
-
 from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import HTTPException, status
@@ -7,6 +5,8 @@ from sqlalchemy.orm import Session
 from tickets.repository.worker_team import create_worker_team as create_wt
 from tickets.models import WorkerTeam, Project, User, UserTeam, WorkerTeamMember
 
+
+#ASSIGN LOGIC
 def assign_worker_team_to_project(
     db: Session,
     project_id: int,
@@ -24,6 +24,25 @@ def assign_worker_team_to_project(
     project.worker_team_id = wt.id
     db.commit()
 
+def create_and_assign_worker_team(
+    db: Session,
+    team_id: int,
+    project_id: int,
+    name: str,
+    admin_id: int,
+) -> dict:
+    wt = create_wt(db, team_id, name, admin_id)
+    assign_worker_team_to_project(db, project_id, wt.id)
+    return {
+        "id": wt.id,
+        "project_id": project_id,
+        "team_id": wt.id,
+        "assigned_at": datetime.now(timezone.utc),
+        "name": wt.name,
+        "description": None,
+    }
+
+#MEMBERSHIP LOGIC
 def add_member_to_worker_team(db: Session, worker_team_id: int, user_id: int):
     wt = db.query(WorkerTeam).filter_by(id=worker_team_id).first()
     if not wt:
@@ -60,23 +79,6 @@ def remove_user_from_worker_team(db: Session, worker_team_id: int,user_id: int) 
     db.commit()
 
 
-def create_and_assign_worker_team(
-    db: Session,
-    team_id: int,
-    project_id: int,
-    name: str,
-    admin_id: int,
-) -> dict:
-    wt = create_wt(db, team_id, name, admin_id)
-    assign_worker_team_to_project(db, project_id, wt.id)
-    return {
-        "id": wt.id,
-        "project_id": project_id,
-        "team_id": wt.id,
-        "assigned_at": datetime.now(timezone.utc),
-        "name": wt.name,
-        "description": None,
-    }
 
 
 def update_worker_team_for_project(
@@ -107,14 +109,9 @@ def remove_worker_team_from_project(
     db.commit()
 
 
-def get_worker_team_of_project(
-    db: Session,
-    project_id: int,
-) -> Optional[WorkerTeam]:
-    project = db.query(Project).filter(Project.id == project_id).first()
-    return project.worker_team if project else None
 
 
+#LIST LOGICS
 def list_projects_without_worker_team(
     db: Session,
 ) -> List[Project]:
@@ -126,6 +123,14 @@ def list_worker_teams(
 ) -> List[WorkerTeam]:
     return db.query(WorkerTeam).all()
 
+
+#Get logics
+def get_worker_team_of_project(
+    db: Session,
+    project_id: int,
+) -> Optional[WorkerTeam]:
+    project = db.query(Project).filter(Project.id == project_id).first()
+    return project.worker_team if project else None
 
 def get_available_workers_by_project(
     db: Session,
