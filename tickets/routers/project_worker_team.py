@@ -157,11 +157,6 @@ def list_all_worker_teams(
     return [WorkerTeamBrief.model_validate(t) for t in teams]
 
 @router.get(
-    "/teams/{team_id}/worker-teams/{worker_team_id}/available-workers",
-    response_model=List[UserBrief]
-)
-
-@router.get(
     "/unassigned-projects",
     response_model=List[ProjectBrief],
 )
