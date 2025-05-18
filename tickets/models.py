@@ -165,6 +165,16 @@ class WorkerTeam(Base):
         cascade="all, delete-orphan"
     )
 
+class WorkerTeamMember(Base):
+    __tablename__ = "worker_team_members"
+    user_id        = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    worker_team_id = Column(Integer, ForeignKey("worker_teams.id", ondelete="CASCADE"), primary_key=True)
+    joined_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # back-refs
+    user        = relationship("User", back_populates="worker_team_memberships")
+    worker_team = relationship("WorkerTeam", back_populates="members")
+
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
