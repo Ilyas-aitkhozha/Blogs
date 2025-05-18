@@ -140,3 +140,5 @@ def get_available_workers_by_worker_team(db: Session, worker_team_id: int) -> Li
           )
           .all()
     )
+def get_all_available_workers(db: Session) -> List[User]:
+    return db.query(User).filter(User.is_available.is_(True)).all()
