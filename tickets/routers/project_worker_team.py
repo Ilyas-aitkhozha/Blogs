@@ -160,25 +160,6 @@ def list_all_worker_teams(
     "/teams/{team_id}/worker-teams/{worker_team_id}/available-workers",
     response_model=List[UserBrief]
 )
-def available_workers_in_worker_team(
-    team_id: int = Path(..., ge=1),
-    worker_team_id: int = Path(..., ge=1),
-    db: Session = Depends(get_db),
-    current_user=Depends(require_project_member),
-) -> List[UserBrief]:
-    users = repo.get_available_workers_by_worker_team(db, worker_team_id)
-    return [UserBrief.model_validate(u) for u in users]
-
-@router.get(
-    "/available-workers",
-    response_model=List[UserBrief],
-)
-def all_available_workers(
-    db: Session = Depends(get_db),
-    current_user=Depends(require_project_member),
-) -> List[UserBrief]:
-    users = repo.get_all_available_workers(db)
-    return [UserBrief.model_validate(u) for u in users]
 
 @router.get(
     "/unassigned-projects",
