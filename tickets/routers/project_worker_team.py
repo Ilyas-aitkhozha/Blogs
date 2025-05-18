@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 from typing import List
 from tickets.schemas.worker_team_member import WorkerTeamMemberRead
-
+from tickets.schemas.worker_team import WorkerTeamBrief
 from tickets.database import get_db
 from tickets.routers.dependencies import (
     require_project_admin,
@@ -148,7 +148,7 @@ def available_workers(
 
 @router.get(
     "/available",
-    response_model=List[TeamBriefInfo],
+    response_model=List[WorkerTeamBrief],
 )
 def list_all_worker_teams(
     db: Session = Depends(get_db),
