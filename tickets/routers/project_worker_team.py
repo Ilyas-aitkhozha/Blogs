@@ -15,7 +15,6 @@ from tickets.schemas.project_worker_team import (
     ProjectWorkerTeamRead,
 )
 from tickets.schemas.project import ProjectBrief
-from tickets.schemas.team import TeamBriefInfo
 from tickets.schemas.user import UserBrief
 import tickets.repository.project_worker_team as repo
 
@@ -168,6 +167,17 @@ def available_workers_in_worker_team(
     current_user=Depends(require_project_member),
 ) -> List[UserBrief]:
     users = repo.get_available_workers_by_worker_team(db, worker_team_id)
+    return [UserBrief.model_validate(u) for u in users]
+
+@router.get(
+    "/available-workers",
+    response_model=List[UserBrief],
+)
+def all_available_workers(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_project_member),
+) -> List[UserBrief]:
+    users = repo.get_all_available_workers(db)
     return [UserBrief.model_validate(u) for u in users]
 
 @router.get(
