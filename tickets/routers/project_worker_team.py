@@ -23,7 +23,7 @@ router = APIRouter(
     tags=["Worker Teams"],
 )
 
-
+#POST
 @router.post(
     "/create",
     response_model=ProjectWorkerTeamRead,
@@ -70,7 +70,7 @@ def assign_existing_worker_team(
     }
     return ProjectWorkerTeamRead.model_validate(payload)
 
-
+#GET
 @router.get(
     "/",
     response_model=ProjectWorkerTeamRead,
@@ -93,43 +93,6 @@ def read_worker_team_assignment(
         "description": None,
     }
     return ProjectWorkerTeamRead.model_validate(payload)
-
-
-@router.patch(
-    "/reassign/{worker_team_id}",
-    response_model=ProjectWorkerTeamRead,
-)
-def reassign_worker_team(
-    team_id: int = Path(..., ge=1),
-    project_id: int = Path(..., ge=1),
-    worker_team_id: int = Path(..., ge=1),
-    db: Session = Depends(get_db),
-    current_user=Depends(require_project_admin),
-) -> ProjectWorkerTeamRead:
-    repo.update_worker_team_for_project(db, project_id, worker_team_id)
-    wt = repo.get_worker_team_of_project(db, project_id)
-    payload = {
-        "id": wt.id,
-        "project_id": project_id,
-        "team_id": wt.id,
-        "assigned_at": datetime.now(timezone.utc),
-        "name": wt.name,
-        "description": None,
-    }
-    return ProjectWorkerTeamRead.model_validate(payload)
-
-
-@router.delete(
-    "/",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-def unassign_worker_team(
-    team_id: int = Path(..., ge=1),
-    project_id: int = Path(..., ge=1),
-    db: Session = Depends(get_db),
-    current_user=Depends(require_project_admin),
-) -> None:
-    repo.remove_worker_team_from_project(db, project_id)
 
 
 @router.get(
@@ -201,3 +164,40 @@ def remove_member(
         raise HTTPException(status_code=404, detail="Project has no WorkerTeam")
     member_delete = repo.remove_user_from_worker_team(db,wt.id,user_id)
     return WorkerTeamMemberRead.model_validate(member_delete)
+
+
+@router.patch(
+    "/reassign/{worker_team_id}",
+    response_model=ProjectWorkerTeamRead,
+)
+def reassign_worker_team(
+    team_id: int = Path(..., ge=1),
+    project_id: int = Path(..., ge=1),
+    worker_team_id: int = Path(..., ge=1),
+    db: Session = Depends(get_db),
+    current_user=Depends(require_project_admin),
+) -> ProjectWorkerTeamRead:
+    repo.update_worker_team_for_project(db, project_id, worker_team_id)
+    wt = repo.get_worker_team_of_project(db, project_id)
+    payload = {
+        "id": wt.id,
+        "project_id": project_id,
+        "team_id": wt.id,
+        "assigned_at": datetime.now(timezone.utc),
+        "name": wt.name,
+        "description": None,
+    }
+    return ProjectWorkerTeamRead.model_validate(payload)
+
+
+@router.delete(
+    "/",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def unassign_worker_team(
+    team_id: int = Path(..., ge=1),
+    project_id: int = Path(..., ge=1),
+    db: Session = Depends(get_db),
+    current_user=Depends(require_project_admin),
+) -> None:
+    repo.remove_worker_team_from_project(db, project_id)
