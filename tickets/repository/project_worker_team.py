@@ -29,7 +29,6 @@ def add_member_to_worker_team(db: Session, worker_team_id: int, user_id: int):
     if not wt:
         raise HTTPException(status_code=404, detail="WorkerTeam not found")
 
-    # избегаем дублей
     exists = (
         db.query(WorkerTeamMember)
           .filter_by(worker_team_id=worker_team_id, user_id=user_id)
@@ -43,6 +42,22 @@ def add_member_to_worker_team(db: Session, worker_team_id: int, user_id: int):
     db.commit()
     db.refresh(link)
     return link
+
+def remove_user_from_project(db: Session, worker_team_id: int,user_id: int) -> None:
+    wt = db.query(WorkerTeam).filter_by(id=worker_team_id).first()
+    if not wt:
+        raise HTTPException(status_code=404, detail="WorkerTeam not found")
+    deleted = (
+        db.query(WorkerTeamMember)
+          .filter_by(project_id=worker_team_id, user_id=user_id)
+          .delete()
+    )
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not in this worket_team"
+        )
+    db.commit()
 
 
 def create_and_assign_worker_team(
