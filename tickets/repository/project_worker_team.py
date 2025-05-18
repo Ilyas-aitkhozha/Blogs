@@ -129,3 +129,14 @@ def get_available_workers_by_project(
           )
           .all()
     )
+
+def get_available_workers_by_worker_team(db: Session, worker_team_id: int) -> List[User]:
+    return (
+        db.query(User)
+          .join(WorkerTeamMember, User.id == WorkerTeamMember.user_id)
+          .filter(
+              WorkerTeamMember.worker_team_id == worker_team_id,
+              User.is_available.is_(True),
+          )
+          .all()
+    )
