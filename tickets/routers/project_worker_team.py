@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 from typing import List
+from tickets.schemas.worker_team_member import WorkerTeamMemberRead
 
 from tickets.database import get_db
 from tickets.routers.dependencies import (
@@ -167,3 +168,22 @@ def list_projects_needing_team(
 ) -> List[ProjectBrief]:
     projects = repo.list_projects_without_worker_team(db)
     return [ProjectBrief.model_validate(p) for p in projects]
+
+@router.post(
+    "/members/{user_id}",
+    response_model=WorkerTeamMemberRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_member(
+    team_id: int = Path(..., ge=1),
+    project_id: int = Path(..., ge=1),
+    user_id: int = Path(..., ge=1),
+    db: Session = Depends(get_db),
+    current_user=Depends(require_project_admin),
+):
+    # получаем worker_team_id от проекта
+    wt = repo.get_worker_team_of_project(db, project_id)
+    if not wt:
+        raise HTTPException(status_code=404, detail="Project has no WorkerTeam")
+    member = repo.add_member_to_worker_team(db, wt.id, user_id)
+    return WorkerTeamMemberRead.model_validate(member)
