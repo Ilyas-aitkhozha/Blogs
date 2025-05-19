@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 from tickets import models
 from tickets.models import UserTeam, ProjectUser
 from tickets.schemas.ticket import TicketCreate, TicketOut, TicketStatusUpdate, TicketAssigneeUpdate, TicketFeedbackUpdate
-from tickets.enums import ProjectRole, TicketType, TicketStatus
+from tickets.enums import ProjectRole, TicketType, TicketStatus, WorkerRole
 
 #--------------------------------------- CREATE
 
@@ -37,7 +37,7 @@ def create_ticket(
               .first()
         )
         if not role_link or role_link.role not in (
-                ProjectRole.member, ProjectRole.worker
+                ProjectRole.member, WorkerRole.worker
         ):
             raise HTTPException(403, "Must be project member or worker")
         if not user.is_available:
@@ -227,7 +227,7 @@ def update_ticket_assignee(
           .first()
     )
     if not role_link or role_link.role not in (
-            ProjectRole.member, ProjectRole.worker
+            ProjectRole.member, WorkerRole.worker
     ):
         raise HTTPException(403, "Must be member or worker")
 
