@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from tickets.models import WorkerTeam, Project, User, UserTeam, WorkerTeamMember
-from tickets.enums import TeamRole
+from tickets.enums import WorkerRole
 
 def create_worker_team(
     db: Session,
@@ -22,7 +22,7 @@ def create_worker_team(
     admin_link = WorkerTeamMember(
         worker_team_id=wt.id,
         user_id=admin_id,
-        role=TeamRole.admin,
+        role=WorkerRole.admin,
         joined_at=datetime.now(timezone.utc)
     )
     db.add(admin_link)
@@ -53,7 +53,7 @@ def create_and_assign_worker_team(
     name: str,
     admin_id: int,
 ) -> dict:
-    wt = create_wt(db, team_id, name, admin_id)
+    wt = create_worker_team(db, team_id, name, admin_id)
     assign_worker_team_to_project(db, project_id, wt.id)
     return {
         "id": wt.id,
