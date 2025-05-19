@@ -75,22 +75,22 @@ class User(Base):
     )
     sessions             = relationship("SessionRecord", back_populates="user", cascade="all, delete-orphan")
 
-    # новый код: администрируемые рабочие команды
-    administered_worker_teams = relationship(
-        "WorkerTeam",
-        back_populates="admin",
-        cascade="all, delete-orphan"
-    )
     worker_team_memberships = relationship(
         "WorkerTeamMember",
         back_populates="user",
-        cascade="all, delete-orphan",
+        cascade="all, delete-orphan"
     )
     worker_teams = relationship(
         "WorkerTeam",
         secondary="worker_team_members",
         back_populates="users",
         overlaps="worker_team_memberships",
+    )
+    administered_worker_teams = relationship(
+        "WorkerTeamMember",
+        primaryjoin="and_(User.id==WorkerTeamMember.user_id,"
+                    "WorkerTeamMember.role=='admin')",
+        viewonly=True
     )
 
 
