@@ -2,10 +2,32 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from tickets.repository.worker_team import create_worker_team as create_wt
 from tickets.models import WorkerTeam, Project, User, UserTeam, WorkerTeamMember
+from tickets.enums import TeamRole
 
-
+def create_worker_team(
+    db: Session,
+    team_id: int,
+    name: str,
+    admin_id: int,
+) ->WorkerTeam:
+    wt =WorkerTeam(
+        team_id=team_id,
+        name=name,
+        description=None
+    )
+    db.add(wt)
+    db.commit()
+    db.refresh(wt)
+    admin_link = WorkerTeamMember(
+        worker_team_id=wt.id,
+        user_id=admin_id,
+        role=TeamRole.admin,
+        joined_at=datetime.now(timezone.utc)
+    )
+    db.add(admin_link)
+    db.commit()
+    return wt
 #ASSIGN LOGIC
 def assign_worker_team_to_project(
     db: Session,
