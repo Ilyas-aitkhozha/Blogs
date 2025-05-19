@@ -42,7 +42,7 @@ class Team(Base):
 
     user_teams  = relationship("UserTeam", back_populates="team", cascade="all, delete-orphan")
     projects    = relationship("Project", back_populates="team")
-    members     = relationship("User", secondary="user_teams", back_populates="teams", overlaps="user_teams")
+    members     = relationship("User", secondary="user_teams", back_populates="teams", overlaps="user_teams")#secondary-indication to our association table for m-m svyaz
     worker_teams = relationship(
         "WorkerTeam",
         back_populates="team",
