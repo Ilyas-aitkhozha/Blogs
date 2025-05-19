@@ -7,7 +7,10 @@ class TeamRole(str, Enum):
 class ProjectRole(str, Enum):
     admin   = "admin"   # admin project
     member  = "member"
-    worker  = "worker"
+
+class WorkerRole(str,Enum):
+    admin = "admin"
+    worker = "worker"
 
 class TicketStatus(str, Enum):
     open        = "open"
