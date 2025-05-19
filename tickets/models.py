@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship
 import random, string
 from datetime import datetime, timezone
 from .database import Base
-from .enums import TeamRole, ProjectRole, TicketStatus, TicketPriority, TicketType
+from .enums import TeamRole, ProjectRole, TicketStatus, TicketPriority, TicketType, WorkerRole
 
 # helper to generate team codes
 
@@ -192,7 +192,7 @@ class WorkerTeamMember(Base):
     user_id        = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     worker_team_id = Column(Integer, ForeignKey("worker_teams.id", ondelete="CASCADE"), primary_key=True)
     joined_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-
+    role = Column(SqlEnum(WorkerRole, native_enum=False),default=WorkerRole.worker, nullable=False)
     # back-refs
     user        = relationship("User", back_populates="worker_team_memberships")
     worker_team = relationship("WorkerTeam", back_populates="members")
