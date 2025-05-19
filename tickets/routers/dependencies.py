@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from tickets.database import get_db
 from tickets.oauth2 import get_current_user
 from tickets.models import User, UserTeam, ProjectUser, Project
-from tickets.enums import TeamRole, ProjectRole
+from tickets.enums import TeamRole, ProjectRole, WorkerRole
 
 
 async def require_authenticated(
@@ -105,7 +105,7 @@ async def require_project_worker(
           .filter_by(project_id=project_id, user_id=current_user.id)
           .first()
     )
-    if link.role != ProjectRole.worker.value:
+    if link.role != WorkerRole.worker.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Requires project worker role",
