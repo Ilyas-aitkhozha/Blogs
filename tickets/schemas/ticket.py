@@ -3,7 +3,7 @@ from pydantic import ConfigDict
 from typing import Optional
 from datetime import datetime
 from tickets.schemas import user
-from tickets.schemas.team import TeamBriefInfo
+from tickets.schemas.worker_team import WorkerTeamBrief
 from ..enums import *
 
 
@@ -35,7 +35,7 @@ class TicketOut(TicketBase):
     type: TicketType
     status: TicketStatus
     creator: user.UserBrief
-    worker_team: Optional[TeamBriefInfo] = None
+    worker_team: Optional[WorkerTeamBrief] = None
     assignee: Optional[user.UserBrief] = None
     created_at: datetime
     priority: TicketPriority
