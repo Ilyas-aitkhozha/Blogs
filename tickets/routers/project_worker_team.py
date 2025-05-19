@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Path, Response
 from sqlalchemy.orm import Session
 from typing import List
 from tickets.schemas.worker_team_member import WorkerTeamMemberRead
@@ -150,7 +150,6 @@ def add_member(
 
 @router.delete(
     "/members/{user_id}",
-    response_model=WorkerTeamMemberRead,
     status_code=status.HTTP_204_NO_CONTENT)
 def remove_member(
         team_id: int = Path(..., ge=1),
@@ -162,8 +161,11 @@ def remove_member(
     wt = repo.get_worker_team_of_project(db, project_id)
     if not wt:
         raise HTTPException(status_code=404, detail="Project has no WorkerTeam")
-    member_delete = repo.remove_user_from_worker_team(db,wt.id,user_id)
-    return WorkerTeamMemberRead.model_validate(member_delete)
+    try:
+        repo.remove_user_from_worker_team(db, wt.id, user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.patch(
