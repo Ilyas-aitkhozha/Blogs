@@ -156,7 +156,7 @@ class WorkerTeam(Base):
     team_id    = Column(Integer, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
     name       = Column(String, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-
+    description = Column(String, nullable=True)
     # связь с Team
     team       = relationship("Team", back_populates="worker_teams")
 
