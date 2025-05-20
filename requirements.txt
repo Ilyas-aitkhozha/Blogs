@@ -13,4 +13,3 @@ authlib
 httpx
 itsdangerous
 pandas
-matplotlib
