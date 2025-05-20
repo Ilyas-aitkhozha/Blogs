@@ -164,6 +164,14 @@ def compute_sla_metrics(team_id: int, db: Session) -> Dict[str, Any]:
     return {"team_id": team_id, "sla_compliance": result}
 
 #routers
+@router.get("/teams/{team_id}/metrics", response_model=Dict[str, Any])
+async def team_metrics(team_id: int, db: Session = Depends(get_db)):
+    return compute_team_metrics(team_id, db)
+
+
+@router.get("/teams/{team_id}/resolution-metrics", response_model=Dict[str, Any])
+async def resolution_metrics(team_id: int, db: Session = Depends(get_db)):
+    return compute_resolution_metrics(team_id, db)
 
 @router.get("/teams/{team_id}/trend", response_model=List[Dict[str, Any]])
 async def ticket_trend(
