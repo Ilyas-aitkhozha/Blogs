@@ -87,10 +87,9 @@ class User(Base):
         overlaps="worker_team_memberships",
     )
     administered_worker_teams = relationship(
-        "WorkerTeamMember",
-        primaryjoin="and_(User.id==WorkerTeamMember.user_id,"
-                    "WorkerTeamMember.role=='admin')",
-        viewonly=True
+        "WorkerTeam",
+        back_populates="admin",
+        cascade="all, delete-orphan",
     )
 
 
