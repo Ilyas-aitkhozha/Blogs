@@ -87,6 +87,22 @@ def remove_user_from_project(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @router.get(
+    "/{project_id}/members",
+    response_model=List[ShowUser],
+    status_code=status.HTTP_200_OK
+)
+def list_project_members(
+    project_id: int = Path(..., ge=1),
+    db: Session = Depends(get_db),
+    current_user=Depends(require_team_member),
+):
+    return project_repo.get_users_in_project(
+        db,
+        project_id,
+        current_user.id
+    )
+
+@router.get(
     "/{project_id}/assignees",
     response_model=List[ShowUserAvailability],
 )
