@@ -70,7 +70,7 @@ def add_user_to_project(
     db: Session = Depends(get_db),
     _current_user: User = Depends(require_team_admin),
 ) -> Response:
-    project_repo.add_user_to_project(db, project_id, user_id, role)
+    project_repo.add_user_to_project(db, project_id, user_id, role,_current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @router.delete(
