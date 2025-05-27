@@ -84,7 +84,7 @@ def remove_user_from_project(
     db: Session = Depends(get_db),
     _current_user: User = Depends(require_team_admin),
 ) -> Response:
-    project_repo.remove_user_from_project(db, project_id, user_id)
+    project_repo.remove_user_from_project(db, project_id, user_id, _current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @router.get(
