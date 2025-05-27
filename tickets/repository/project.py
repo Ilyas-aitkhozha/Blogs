@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-
+from tickets.schemas.user import UserBrief
 from tickets.models import Project, ProjectUser, User, UserTeam
 from tickets.schemas.project import ProjectCreate
 from tickets.enums import ProjectRole
@@ -81,6 +81,16 @@ def get_project_by_id(
             detail=f"Project {project_id} not found"
         )
     return proj
+
+def get_users_in_project(db:Session, project_id: int, current_user_id:int) -> List[UserBrief]:
+    ensure_user_in_project_team(db, project_id, current_user_id)
+    users = (
+        db.query(User)
+          .join(ProjectUser, User.id == ProjectUser.user_id)
+          .filter(ProjectUser.project_id == project_id)
+          .all()
+    )
+    return [UserBrief.model_validate(u) for u in users]
 
 def get_projects_for_user(
     db: Session,
