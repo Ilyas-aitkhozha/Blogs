@@ -2,9 +2,10 @@ from typing import List
 from fastapi import APIRouter, Depends, Path, Query, status, HTTPException, Response
 from sqlalchemy.orm import Session
 from tickets.database import get_db
+from tickets.repository.project import get_users_in_project
 from tickets.routers.dependencies import require_team_admin, require_team_member
 from tickets.schemas.project import ProjectCreate, ProjectOut, ProjectBrief
-from tickets.schemas.user import ShowUser, ShowUserAvailability
+from tickets.schemas.user import ShowUser, ShowUserAvailability, UserBrief
 from tickets.repository import project as project_repo
 from tickets.repository import user as user_repo
 from tickets.enums import ProjectRole, TicketType
@@ -88,19 +89,16 @@ def remove_user_from_project(
 
 @router.get(
     "/{project_id}/members",
-    response_model=List[ShowUser],
+    response_model=List[UserBrief],
     status_code=status.HTTP_200_OK
 )
 def list_project_members(
     project_id: int = Path(..., ge=1),
     db: Session = Depends(get_db),
     current_user=Depends(require_team_member),
-):
-    return project_repo.get_users_in_project(
-        db,
-        project_id,
-        current_user.id
-    )
+) -> List[UserBrief]:
+    users = get_users_in_project(db, project_id, current_user.id)
+    return [UserBrief(id=u.id, name=u.name) for u in users]
 
 @router.get(
     "/{project_id}/assignees",
