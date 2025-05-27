@@ -14,7 +14,7 @@ class TicketBase(BaseModel):
     description: str
 
 class TicketCreate(TicketBase):
-    type: TicketType
+    type: TicketType = TicketType.worker
     assigned_to_name: Optional[str] = None
     worker_team_id: Optional[int] = None
     priority: Optional[TicketPriority] = TicketPriority.medium
