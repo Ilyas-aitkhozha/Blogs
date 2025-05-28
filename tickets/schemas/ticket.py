@@ -15,6 +15,8 @@ class TicketBase(BaseModel):
 
 class TicketCreate(TicketBase):
     type: TicketType = TicketType.worker
+    team_id: int | None = None
+    project_id: int | None = None
     assigned_to_name: Optional[str] = None
     assigned_to: int | None = None
     worker_team_id: Optional[int] = None
