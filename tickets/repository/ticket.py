@@ -8,6 +8,26 @@ from tickets.schemas.ticket import TicketCreate, TicketOut, TicketStatusUpdate, 
 from tickets.enums import ProjectRole, TicketType, TicketStatus, WorkerRole
 
 #--------------------------------------- CREATE
+def _resolve_assignee(
+    db: Session,
+    assignee_name: Optional[str],
+    project_id: int,
+) -> Optional[int]:
+    if not assignee_name:
+        return None
+
+    user = (
+        db.query(models.User)
+          .join(ProjectUser, ProjectUser.user_id == models.User.id)
+          .filter(
+              ProjectUser.project_id == project_id,
+              models.User.name.ilike(f"%{assignee_name}%"),
+          )
+          .first()
+    )
+    if not user:
+        raise HTTPException(404, "Assignee not found in this project")
+    return user.id
 
 def create_ticket(
     db: Session,
