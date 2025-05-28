@@ -34,7 +34,7 @@ def create_ticket(
     current_user: models.User = Depends(get_current_user),
 ):
     _ensure_project_member(current_user, project_id)
-    return ticket_repo.create_ticket(db, payload, current_user.id, project_id)
+    return ticket_repo.create_ticket(db, payload, current_user.id, project_id, team_id = current_user.teams[0].id)
 
 
 
