@@ -24,7 +24,9 @@ load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 logger = logging.getLogger(__name__)
-
+_TEAM_RE    = re.compile(r"\bteam\s*[-:]\s*([A-Za-z0-9_-]+)", re.I)
+_PROJECT_RE = re.compile(r"\bproject\s*[-:]\s*([A-Za-z0-9 _-]+)", re.I)
+_JSON_RE    = re.compile(r"\{.*\}", re.S)
 _JSON_SCHEMA = """
 Тебе присылают произвольный текст задачи.
 Верни ТОЛЬКО JSON строго по образцу и ничего больше:
@@ -37,9 +39,34 @@ _JSON_SCHEMA = """
 """
 
 def _extract_json(text: str) -> str | None:
-    m = re.search(r"\{.*\}", text, flags=re.S)
+    m = _JSON_RE.search(text)
     return m.group(0) if m else None
+def _regex_parse(text: str) -> Dict[str, str] | None:
+    """
+    Пытаемся выцепить team_code и project_name регэкспами.
+    Возвращаем словарь или None, если чего-то нет.
+    """
+    team_m    = _TEAM_RE.search(text)
+    project_m = _PROJECT_RE.search(text)
+    if not (team_m and project_m):
+        return None
 
+    team_code    = team_m.group(1).strip()
+    project_name = project_m.group(1).strip()
+
+    # удаляем найденные куски из описания
+    cleaned = _TEAM_RE.sub("", text)
+    cleaned = _PROJECT_RE.sub("", cleaned).strip()
+
+    # title = первые 50 символов без перевода строк
+    title = cleaned.splitlines()[0][:50].strip()
+    return {
+        "title": title or "no title",
+        "description": cleaned,
+        "team_code": team_code,
+        "project_name": project_name,
+        "candidate_roles": [],
+    }
 
 def _history_to_messages(
     db: Session,
@@ -65,48 +92,53 @@ def analyze_tasks(
     user_id: int,
 ) -> Dict[str, Any]:
 
+    # 0) пробуем быстрый regex-парс
+    parsed = _regex_parse(user_input)
+    if parsed:
+        return parsed                     # ← успех, LLM не вызываем
+
+    # 1) собираем историю
     msgs = _history_to_messages(db, session_id, user_input, user_id)
 
+    # 2) system-prompt (роль "user" для Gemini Flash)
     system_prompt = TICKET_CREATING_PROMPT + "\n\n" + _JSON_SCHEMA
     msgs.insert(0, {"role": "user", "parts": [system_prompt]})
 
+    # 3) вызываем модель
     model = GenerativeModel("gemini-1.5-flash")
-    raw_resp = model.generate_content(msgs).text.strip()
+    raw = model.generate_content(msgs).text.strip()
 
-    data: Dict[str, Any] | None = None
+    # 4) парсим JSON
     try:
-        data = json.loads(raw_resp)
+        data: Dict[str, Any] = json.loads(raw)
     except json.JSONDecodeError:
-        raw_json = _extract_json(raw_resp)
+        raw_json = _extract_json(raw)
         if raw_json:
             try:
                 data = json.loads(raw_json)
             except json.JSONDecodeError:
-                pass
+                data = None
+        else:
+            data = None
 
-    if data is None or not isinstance(data, dict):
-        logger.warning("Gemini JSON parse fail. Raw(300): %r", raw_resp[:300])
+    if not data or not isinstance(data, dict):
+        logger.warning("Gemini JSON parse fail. Raw(300): %r", raw[:300])
         raise HTTPException(
             422,
             "Could not extract JSON. "
-            "Make sure to include lines like `team - <code>` and `project - <name>`."
+            "Make sure to include `team - <code>` and `project - <name>`."
         )
 
-    missing = [k for k in ("team_code", "project_name") if not data.get(k)]
-    if missing:
-        raise HTTPException(
-            422,
-            f"Missing required field(s): {', '.join(missing)}. "
-            "Please add them in the form `team - …`, `project - …`."
-        )
+    # проверяем обязательные поля
+    for key in ("team_code", "project_name"):
+        if not data.get(key):
+            raise HTTPException(
+                422,
+                f"Missing required field: {key}. "
+                "Add lines `team - …`, `project - …`."
+            )
 
-    return {
-        "title": data.get("title", user_input[:50].strip()),
-        "description": data.get("description", user_input.strip()),
-        "team_code": data["team_code"].strip(),
-        "project_name": data["project_name"].strip(),
-        "candidate_roles": data.get("candidate_roles", []),
-    }
+    return data
 
 
 def generate_reply(
