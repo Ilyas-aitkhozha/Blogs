@@ -34,44 +34,31 @@ def create_ticket(
     ticket_in: TicketCreate,
     user_id: int,
     project_id: int,
-) -> TicketOut:  # checks for if you are in proj
+) -> TicketOut:
     project = db.get(models.Project, project_id)
     if not project:
         raise HTTPException(404, "Project not found")
-    link = (
+
+    author_link = (
         db.query(ProjectUser)
-          .filter_by(user_id=user_id, project_id=project_id)
-          .first()
+        .filter_by(user_id=user_id, project_id=project_id)
+        .first()
     )
-    if not link:
+    if not author_link:
         raise HTTPException(403, "You are not a member of this project")
 
-    assigned_user_id: Optional[int] = None
-    if getattr(ticket_in, 'assigned_to', None) is not None:
-        user = db.get(models.User, ticket_in.assigned_to)
-        if not user:
-            raise HTTPException(404, "Assigned user not found")
-        role_link = (
-            db.query(ProjectUser)
-              .filter_by(user_id=user.id, project_id=project_id)
-              .first()
-        )
-        if not role_link or role_link.role not in (
-                ProjectRole.member, WorkerRole.worker
-        ):
-            raise HTTPException(403, "Must be project member or worker")
-        if not user.is_available:
-            raise HTTPException(400, "User not available")
-        assigned_user_id = user.id
+    assigned_user_id = _resolve_assignee(
+        db,
+        getattr(ticket_in, "assigned_to_name", None),  # поле-строка из схемы
+        project_id,
+    )
 
     assigned_worker_team_id: Optional[int] = None
-    if getattr(ticket_in, 'worker_team_id', None) is not None:
-        # клиент указал рабочую команду вручную
+    if getattr(ticket_in, "worker_team_id", None) is not None:
         if project.worker_team_id != ticket_in.worker_team_id:
             raise HTTPException(400, "Worker team not assigned to this project")
         assigned_worker_team_id = ticket_in.worker_team_id
     elif ticket_in.type == TicketType.worker:
-        # автоматически назначаем на рабочую команду проекта
         if not project.worker_team_id:
             raise HTTPException(400, "No worker team assigned to project")
         assigned_worker_team_id = project.worker_team_id
@@ -89,6 +76,7 @@ def create_ticket(
     db.add(ticket)
     db.commit()
     db.refresh(ticket)
+
     return _load_ticket(db, ticket.id)
 
 #------------------------------ GET LOGICS
