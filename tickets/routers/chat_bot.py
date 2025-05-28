@@ -90,18 +90,20 @@ def chat(
         ticket_in = ticket_schema.TicketCreate(
             title=title,
             description=description,
-            assigned_to_name=assignee_name
+            assigned_to_name=assignee_name,  # <-- передаём строку
         )
+
         new_ticket = ticket_repository.create_ticket(
             db=db,
             ticket_in=ticket_in,
             user_id=current_user.id,
-            team_id=current_team.id,
             project_id=current_project.project_id
         )
 
-        reply = f"🎫 Тикет #{new_ticket.id} создан: «{new_ticket.title}»"
-        reply += f" (назначен {assignee_name})" if assignee_name else " (пока без исполнителя)"
+        reply = (
+                f"🎫 Тикет #{new_ticket.id} создан: «{new_ticket.title}»"
+                + (f" (исполнитель: {assignee_name})" if assignee_name else " (без исполнителя)")
+        )
 
         save_message(db, session_id, role="user", content=user_msg)
         save_message(db, session_id, role="assistant", content=reply)
