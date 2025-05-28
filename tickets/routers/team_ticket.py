@@ -48,16 +48,14 @@ def list_tickets(
     return ticket_repo.get_all_tickets(db, project_id)
 
 
-@router.get("/tickets/{ticket_id}", response_model=TicketOut)
-def get_ticket(
+@router.get("/tickets/my-assigned", response_model=List[TicketOut])
+def my_assigned(
     project_id: int,
-    ticket_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     _ensure_project_member(current_user, project_id)
-    return ticket_repo.get_ticket_by_id(db, ticket_id, project_id)
-
+    return ticket_repo.get_tickets_assigned_to_user(db, current_user, project_id)
 
 @router.get("/tickets/my-created", response_model=List[TicketOut])
 def my_created(
@@ -69,14 +67,6 @@ def my_created(
     return ticket_repo.get_tickets_assigned_to_user(db, current_user, project_id)
 
 
-@router.get("/tickets/my-assigned", response_model=List[TicketOut])
-def my_assigned(
-    project_id: int,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    _ensure_project_member(current_user, project_id)
-    return ticket_repo.get_tickets_assigned_to_user(db, current_user, project_id)
 
 @router.get("/tickets/priorities", response_model=list[str])
 def get_priorities(
@@ -84,7 +74,15 @@ def get_priorities(
 ):
     return [p.value for p in TicketPriority]
 
-
+@router.get("/tickets/{ticket_id}", response_model=TicketOut)
+def get_ticket(
+    project_id: int,
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    _ensure_project_member(current_user, project_id)
+    return ticket_repo.get_ticket_by_id(db, ticket_id, project_id)
 
 @router.put("/tickets/{ticket_id}/status", response_model=TicketOut)
 def update_ticket_status_by_assignee(
