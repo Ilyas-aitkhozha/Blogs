@@ -68,7 +68,7 @@ def analyze_tasks(
     msgs = _history_to_messages(db, session_id, user_input, user_id)
 
     system_prompt = TICKET_CREATING_PROMPT + "\n\n" + _JSON_SCHEMA
-    msgs.insert(0, {"role": "system", "parts": [system_prompt]})
+    msgs.insert(0, {"role": "user", "parts": [system_prompt]})
 
     model = GenerativeModel("gemini-1.5-flash")
     raw_resp = model.generate_content(msgs).text.strip()
@@ -102,7 +102,7 @@ def generate_reply(
     system_prompt: str = BASE_PROMT,
 ) -> str:
     msgs = _history_to_messages(db, session_id, user_input, user_id)
-    msgs.insert(0, {"role": "system", "parts": [system_prompt]})
+    msgs.insert(0, {"role": "user", "parts": [system_prompt]})
 
     model = GenerativeModel("gemini-1.5-flash")
     reply = model.generate_content(msgs).text.strip()
