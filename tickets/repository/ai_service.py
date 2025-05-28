@@ -4,7 +4,7 @@ import re
 import json
 import logging
 from typing import Optional, List, Dict, Any
-
+from fastapi import HTTPException
 from dotenv import load_dotenv
 import google.generativeai as genai
 from google.generativeai import GenerativeModel
@@ -37,7 +37,6 @@ _JSON_SCHEMA = """
 """
 
 def _extract_json(text: str) -> str | None:
-    """Вернуть первый {...} блок из ответа LLM (если она «болтает лишнее»)."""
     m = re.search(r"\{.*\}", text, flags=re.S)
     return m.group(0) if m else None
 
@@ -65,6 +64,7 @@ def analyze_tasks(
     user_input: str,
     user_id: int,
 ) -> Dict[str, Any]:
+
     msgs = _history_to_messages(db, session_id, user_input, user_id)
 
     system_prompt = TICKET_CREATING_PROMPT + "\n\n" + _JSON_SCHEMA
@@ -73,24 +73,40 @@ def analyze_tasks(
     model = GenerativeModel("gemini-1.5-flash")
     raw_resp = model.generate_content(msgs).text.strip()
 
+    data: Dict[str, Any] | None = None
     try:
-        return json.loads(raw_resp)
+        data = json.loads(raw_resp)
     except json.JSONDecodeError:
         raw_json = _extract_json(raw_resp)
         if raw_json:
             try:
-                return json.loads(raw_json)
+                data = json.loads(raw_json)
             except json.JSONDecodeError:
                 pass
 
-        logger.warning(
-            "Gemini JSON parse fail. Raw (trunc): %r", raw_resp[:300]
+    if data is None or not isinstance(data, dict):
+        logger.warning("Gemini JSON parse fail. Raw(300): %r", raw_resp[:300])
+        raise HTTPException(
+            422,
+            "Could not extract JSON. "
+            "Make sure to include lines like `team - <code>` and `project - <name>`."
         )
-        return {
-            "title": user_input[:50].strip(),
-            "description": user_input.strip(),
-            "candidate_roles": [],
-        }
+
+    missing = [k for k in ("team_code", "project_name") if not data.get(k)]
+    if missing:
+        raise HTTPException(
+            422,
+            f"Missing required field(s): {', '.join(missing)}. "
+            "Please add them in the form `team - …`, `project - …`."
+        )
+
+    return {
+        "title": data.get("title", user_input[:50].strip()),
+        "description": data.get("description", user_input.strip()),
+        "team_code": data["team_code"].strip(),
+        "project_name": data["project_name"].strip(),
+        "candidate_roles": data.get("candidate_roles", []),
+    }
 
 
 def generate_reply(
