@@ -104,7 +104,7 @@ class Ticket(Base):
     feedback       = Column(String, nullable=True)
 
     created_by     = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
-    assigned_to    = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    assigned_to    = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=False)
     team_id        = Column(Integer, ForeignKey("teams.id", ondelete="CASCADE"))
     project_id     = Column(Integer, ForeignKey("projects.id"), nullable=True)
 
