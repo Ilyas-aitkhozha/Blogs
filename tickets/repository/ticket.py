@@ -34,7 +34,18 @@ def create_ticket(
     ticket_in: TicketCreate,
     user_id: int,
     project_id: int,
+    team_id: int | None = None
 ) -> TicketOut:
+    team_id = team_id or ticket_in.team_id
+    if team_id is None:
+        user: models.User = db.get(models.User, user_id)
+        if not user.teams:
+            raise HTTPException(400, "Team ID must be provided")
+        team_id = user.teams[0].id
+
+    team = db.get(models.Team, team_id)
+    if not team:
+        raise HTTPException(404, "Team not found")
     project = db.get(models.Project, project_id)
     if not project:
         raise HTTPException(404, "Project not found")
@@ -71,6 +82,7 @@ def create_ticket(
         created_by=user_id,
         assigned_to=assigned_user_id,
         worker_team_id=assigned_worker_team_id,
+        team_id = team.id,
         project_id=project_id,
     )
     db.add(ticket)
