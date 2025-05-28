@@ -52,25 +52,48 @@ def chat(
     is_chart_cmd = any(k in user_msg.lower() for k in ["chart", "diagram", "visual"])
 
     # если команда-операция и нет membership → совет вступить
-    if (is_ticket_cmd or is_report_cmd or is_chart_cmd) and not current_team:
-        reply = (
-            "⚠ Вы пока ни в одной команде. "
-            "Чтобы использовать эту функцию, вступите в команду — отправьте\n"
-            "`/join_team <код_команды>`."
-        )
-        save_message(db, session_id, role="user", content=user_msg)
-        save_message(db, session_id, role="assistant", content=reply)
-        return ChatResponse(reply=reply, session_id=session_id)
-
-    # 1) Создание тикета
     if is_ticket_cmd:
         logger.info("ai bot creating ticket")
         body = user_msg[len(TASK_PREFIX):].strip()
-        result = analyze_tasks(db, session_id, body, current_user.id)
-        title = result.get("title", body[:50].strip())
-        description = result.get("description", body).strip()
-        candidates = result.get("candidate_roles", [])
 
+        # 1) вытягиваем JSON {title, description, team_code, project_name …}
+        try:
+            parsed = analyze_tasks(db, session_id, body, current_user.id)
+        except HTTPException as exc:
+            save_message(db, session_id, role="assistant", content=exc.detail)
+            return ChatResponse(reply=exc.detail, session_id=session_id)
+
+        team_code = parsed["team_code"].strip()
+        project_name = parsed["project_name"].strip()
+        title = parsed["title"]
+        description = parsed["description"]
+        candidates = parsed.get("candidate_roles", [])
+
+        # 2) ищем команду
+        team = db.query(models.Team).filter_by(code=team_code).first()
+        if not team:
+            reply = f"⚠ Команда с кодом «{team_code}» не найдена."
+            save_message(db, session_id, role="assistant", content=reply)
+            return ChatResponse(reply=reply, session_id=session_id)
+
+        # проверяем, что пользователь состоит в этой команде
+        if team.id not in [t.id for t in current_user.teams]:
+            reply = "⚠ Вы не состоите в указанной команде и не можете создавать там тикеты."
+            save_message(db, session_id, role="assistant", content=reply)
+            return ChatResponse(reply=reply, session_id=session_id)
+
+        # 3) ищем проект
+        project = (
+            db.query(models.Project)
+            .filter(models.Project.name.ilike(project_name))
+            .first()
+        )
+        if not project:
+            reply = f"⚠ Проект «{project_name}» не найден."
+            save_message(db, session_id, role="assistant", content=reply)
+            return ChatResponse(reply=reply, session_id=session_id)
+
+        # 4) определяем потенциального исполнителя (по имени в тексте / авто-выбор)
         if NO_ASSIGN_RE.search(body.lower()):
             assignee_name = None
         else:
@@ -80,56 +103,55 @@ def chat(
             elif candidates:
                 assignee_name = candidates[0]
             else:
-                admins = get_least_loaded_admins(
-                    db=db,
-                    team_id=current_team.id,
-                    limit=2
-                )
+                admins = get_least_loaded_admins(db, team_id=team.id, limit=1)
                 assignee_name = admins[0].name if admins else None
 
+        # 5) собираем TicketCreate
         ticket_in = ticket_schema.TicketCreate(
             title=title,
             description=description,
-            assigned_to_name=assignee_name,  # <-- передаём строку
+            assigned_to_name=assignee_name,
+            team_id=team.id,
+            project_id=project.id,
         )
 
+        # 6) создаём тикет
         new_ticket = ticket_repository.create_ticket(
             db=db,
             ticket_in=ticket_in,
             user_id=current_user.id,
-            project_id=current_project.project_id,
-            team_id = current_team.id
+            project_id=project.id,
+            team_id=team.id,
         )
 
         reply = (
-                f"🎫 Тикет #{new_ticket.id} создан: «{new_ticket.title}»"
-                + (f" (исполнитель: {assignee_name})" if assignee_name else " (без исполнителя)")
+                f"🎫 Тикет #{new_ticket.id} создан (команда {team.code}, проект {project.name}) — "
+                f"«{new_ticket.title}»"
+                + (f", исполнитель: {assignee_name}" if assignee_name else ", без исполнителя")
         )
-
-        save_message(db, session_id, role="user", content=user_msg)
         save_message(db, session_id, role="assistant", content=reply)
         return ChatResponse(reply=reply, session_id=session_id, ticket=new_ticket)
 
+        # ── 1. /report ─────────────────────────────────────────────────────────
     if is_report_cmd:
-        logger.info("ai bot reporting ticket")
         reply = report_with_metrics(
             db=db,
             session_id=session_id,
             user_input=user_msg,
             user_id=current_user.id,
-            team_id=current_team.id
+            team_id=current_user.teams[0].id if current_user.teams else None,
         )
-        save_message(db, session_id, role="user", content=user_msg)
         save_message(db, session_id, role="assistant", content=reply)
         return ChatResponse(reply=reply, session_id=session_id)
 
-    if is_chart_cmd:
-        logger.info("ai bot reporting visually")
-        reply = f"GENERATE_CHART:STATUS_PIE:{current_team.id}"
-        save_message(db, session_id, role="user", content=user_msg)
+        # ── 2. /chart ──────────────────────────────────────────────────────────
+    if is_chart_cmd and current_user.teams:
+        team_id = current_user.teams[0].id
+        reply = f"GENERATE_CHART:STATUS_PIE:{team_id}"
         save_message(db, session_id, role="assistant", content=reply)
         return ChatResponse(reply=reply, session_id=session_id)
 
+        # ── 3. обычный ответ LLM ───────────────────────────────────────────────
     reply = generate_reply(
         db=db,
         session_id=session_id,
