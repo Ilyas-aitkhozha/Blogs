@@ -97,7 +97,8 @@ def chat(
             db=db,
             ticket_in=ticket_in,
             user_id=current_user.id,
-            project_id=current_project.project_id
+            project_id=current_project.project_id,
+            team_id = current_team.id
         )
 
         reply = (
