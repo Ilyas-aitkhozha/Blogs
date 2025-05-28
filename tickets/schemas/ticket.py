@@ -16,6 +16,7 @@ class TicketBase(BaseModel):
 class TicketCreate(TicketBase):
     type: TicketType = TicketType.worker
     assigned_to_name: Optional[str] = None
+    assigned_to: int | None = None
     worker_team_id: Optional[int] = None
     priority: Optional[TicketPriority] = TicketPriority.medium
     model_config = ConfigDict(from_attributes=True)
